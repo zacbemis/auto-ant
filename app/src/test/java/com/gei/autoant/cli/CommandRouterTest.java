@@ -1,0 +1,74 @@
+package com.gei.autoant.cli;
+
+import com.gei.autoant.prompt.PromptService;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
+import java.nio.file.Path;
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+class CommandRouterTest {
+    @TempDir
+    Path tempDir;
+
+    @Test
+    void printsHelpWhenNoCommandIsProvided() {
+        Harness harness = new Harness(tempDir);
+
+        int exitCode = harness.router().run(new String[]{});
+
+        assertEquals(0, exitCode);
+        assertTrue(harness.stdout().contains("auto-ant doctor"));
+        assertTrue(harness.stdout().contains("auto-ant init"));
+    }
+
+    @Test
+    void unknownCommandReturnsUsageError() {
+        Harness harness = new Harness(tempDir);
+
+        int exitCode = harness.router().run(new String[]{"unknown"});
+
+        assertEquals(2, exitCode);
+        assertTrue(harness.stderr().contains("Unknown command: unknown"));
+        assertTrue(harness.stdout().contains("Usage:"));
+    }
+
+    @Test
+    void commandHelpDoesNotRequireProjectDetection() {
+        Harness harness = new Harness(tempDir);
+
+        int exitCode = harness.router().run(new String[]{"doctor", "--help"});
+
+        assertEquals(0, exitCode);
+        assertTrue(harness.stdout().contains("Usage: auto-ant doctor"));
+    }
+
+    private static final class Harness {
+        private final ByteArrayOutputStream out = new ByteArrayOutputStream();
+        private final ByteArrayOutputStream err = new ByteArrayOutputStream();
+        private final CommandRouter router;
+
+        private Harness(Path projectRoot) {
+            PromptService promptService = (label, detectedValue) -> Optional.empty();
+            CommandContext context = new CommandContext(projectRoot, new PrintStream(out), new PrintStream(err), promptService);
+            this.router = new CommandRouter(context);
+        }
+
+        private CommandRouter router() {
+            return router;
+        }
+
+        private String stdout() {
+            return out.toString();
+        }
+
+        private String stderr() {
+            return err.toString();
+        }
+    }
+}

@@ -3,12 +3,15 @@ package com.gei.autoant.cli;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.Set;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 
 public final class CommandLine {
+    private static final Set<String> BOOLEAN_OPTIONS = Set.of("h", "help", "interactive");
+
     private final Map<String, List<String>> options;
     private final List<String> positionals;
 
@@ -32,7 +35,7 @@ public final class CommandLine {
                     value = arg.substring(equalsIndex + 1);
                 } else {
                     rawName = arg.substring(2);
-                    if (i + 1 < args.length && !args[i + 1].startsWith("-")) {
+                    if (!BOOLEAN_OPTIONS.contains(normalize(rawName)) && i + 1 < args.length && !args[i + 1].startsWith("-")) {
                         value = args[++i];
                     } else {
                         value = "true";

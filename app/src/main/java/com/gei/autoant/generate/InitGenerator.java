@@ -33,7 +33,7 @@ public final class InitGenerator {
     }
 
     private GeneratedFile writeSafely(Path primary, Path alternate, String content) throws IOException {
-        Path target = Files.exists(primary) ? alternate : primary;
+        Path target = Files.exists(primary) ? nextAvailableAlternate(alternate) : primary;
         Files.createDirectories(target.getParent() == null ? projectRoot : target.getParent());
         Files.writeString(target, content, StandardCharsets.UTF_8);
         if (target.equals(primary)) {
@@ -41,6 +41,22 @@ public final class InitGenerator {
         }
         return new GeneratedFile(target, WriteStatus.CREATED_ALTERNATE,
                 "Existing " + projectRoot.relativize(primary).toString().replace('\\', '/')
-                        + " found; wrote " + projectRoot.relativize(alternate).toString().replace('\\', '/') + " instead.");
+                        + " found; wrote " + projectRoot.relativize(target).toString().replace('\\', '/') + " instead.");
+    }
+
+    private Path nextAvailableAlternate(Path alternate) {
+        if (!Files.exists(alternate)) {
+            return alternate;
+        }
+        Path parent = alternate.getParent();
+        String fileName = alternate.getFileName().toString();
+        int counter = 2;
+        while (true) {
+            Path candidate = parent.resolve(fileName + "." + counter);
+            if (!Files.exists(candidate)) {
+                return candidate;
+            }
+            counter++;
+        }
     }
 }

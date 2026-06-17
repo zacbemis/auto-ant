@@ -15,6 +15,7 @@ public final class GitignoreWriter {
     );
 
     public GeneratedFile update(Path gitignore) throws IOException {
+        boolean existedBefore = Files.exists(gitignore);
         List<String> lines = Files.exists(gitignore)
                 ? Files.readAllLines(gitignore, StandardCharsets.UTF_8)
                 : new ArrayList<>();
@@ -32,7 +33,7 @@ public final class GitignoreWriter {
         updated.addAll(missing);
 
         Files.write(gitignore, updated, StandardCharsets.UTF_8);
-        WriteStatus status = lines.isEmpty() && !Files.exists(gitignore) ? WriteStatus.CREATED : WriteStatus.UPDATED;
-        return new GeneratedFile(gitignore, status, (Files.exists(gitignore) ? "Updated" : "Created") + " .gitignore auto-ant entries.");
+        WriteStatus status = existedBefore ? WriteStatus.UPDATED : WriteStatus.CREATED;
+        return new GeneratedFile(gitignore, status, (existedBefore ? "Updated" : "Created") + " .gitignore auto-ant entries.");
     }
 }
