@@ -1,0 +1,63 @@
+package com.gei.autoant.cli;
+
+import java.util.Arrays;
+import java.util.Locale;
+
+public final class CommandRouter {
+    private final CommandContext context;
+
+    public CommandRouter(CommandContext context) {
+        this.context = context;
+    }
+
+    public int run(String[] args) {
+        if (args.length == 0 || isHelp(args[0])) {
+            printHelp();
+            return 0;
+        }
+
+        String command = args[0].toLowerCase(Locale.ROOT);
+        String[] commandArgs = Arrays.copyOfRange(args, 1, args.length);
+
+        return switch (command) {
+            case "doctor" -> new DoctorCommand(context).run(commandArgs);
+            case "init" -> new InitCommand(context).run(commandArgs);
+            case "run" -> new RunCommand(context).run(commandArgs);
+            case "watch" -> new WatchCommand(context).run(commandArgs);
+            case "reload" -> new ReloadCommand(context).run(commandArgs);
+            default -> {
+                context.err().println("Unknown command: " + args[0]);
+                context.err().println();
+                printHelp();
+                yield 2;
+            }
+        };
+    }
+
+    private boolean isHelp(String value) {
+        return "help".equalsIgnoreCase(value) || "--help".equals(value) || "-h".equals(value);
+    }
+
+    private void printHelp() {
+        context.out().println("auto-ant");
+        context.out().println();
+        context.out().println("Usage:");
+        context.out().println("  auto-ant doctor [options]");
+        context.out().println("  auto-ant init [options]");
+        context.out().println("  auto-ant run <ant-target>");
+        context.out().println("  auto-ant watch");
+        context.out().println("  auto-ant reload");
+        context.out().println();
+        context.out().println("Common options:");
+        context.out().println("  --root <path>             Project root. Defaults to current directory.");
+        context.out().println("  --app <name>              Application name override.");
+        context.out().println("  --context <path>          Context path override, for example /MyApp.");
+        context.out().println("  --src <paths>             Comma-separated Java source roots.");
+        context.out().println("  --web <path>              Web root override.");
+        context.out().println("  --webinf <path>           WEB-INF directory override.");
+        context.out().println("  --lib <paths>             Comma-separated library directories.");
+        context.out().println("  --tomcat <path>           Tomcat home override.");
+        context.out().println("  --java <release>          Java release override.");
+        context.out().println("  --interactive             Accept or override detected values interactively.");
+    }
+}
