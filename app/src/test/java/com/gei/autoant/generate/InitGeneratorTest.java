@@ -23,22 +23,33 @@ class InitGeneratorTest {
 
         GenerationResult result = new InitGenerator(tempDir).generate(model);
 
-        assertEquals(6, result.files().size());
+        assertEquals(5, result.files().size());
         assertTrue(Files.exists(tempDir.resolve("build.xml")));
         assertTrue(Files.exists(tempDir.resolve("auto-ant.properties")));
         assertTrue(Files.exists(tempDir.resolve("auto-ant.local.properties")));
         assertTrue(Files.exists(tempDir.resolve(".vscode/tasks.json")));
-        assertTrue(Files.exists(tempDir.resolve(".vscode/settings.json")));
+        assertTrue(Files.notExists(tempDir.resolve(".vscode/settings.json")));
         assertTrue(Files.readString(tempDir.resolve("build.xml")).contains("target name=\"clean-build\""));
         assertTrue(Files.readString(tempDir.resolve("build.xml")).contains("target name=\"deploy-exploded\""));
         assertTrue(Files.readString(tempDir.resolve("auto-ant.properties")).contains("app.name=MyApp"));
         assertTrue(Files.readString(tempDir.resolve("auto-ant.properties")).contains("java.release=25"));
+        assertTrue(Files.readString(tempDir.resolve(".gitignore")).contains("auto-ant.local.properties"));
+    }
+
+    @Test
+    void generatesVsCodeFileWatcherSettingsWhenEnabled() throws IOException {
+        createSimpleProject();
+        var model = new ProjectDetector().detect(tempDir, NonInteractiveOptions.builder(tempDir).appName("MyApp").javaRelease(25).build());
+
+        GenerationResult result = new InitGenerator(tempDir).generate(model, true);
+
+        assertEquals(6, result.files().size());
+        assertTrue(Files.exists(tempDir.resolve(".vscode/settings.json")));
         String settingsJson = Files.readString(tempDir.resolve(".vscode/settings.json"));
         assertTrue(settingsJson.contains("\"filewatcher.commands\""));
         assertTrue(settingsJson.contains("\"event\": \"onFileChange\""));
         assertTrue(settingsJson.contains("\"cmd\": \"ant sync-web\""));
         assertTrue(settingsJson.contains("jsp|jspf|html"));
-        assertTrue(Files.readString(tempDir.resolve(".gitignore")).contains("auto-ant.local.properties"));
     }
 
     @Test
@@ -51,7 +62,7 @@ class InitGeneratorTest {
 
         var model = new ProjectDetector().detect(tempDir, NonInteractiveOptions.builder(tempDir).build());
 
-        new InitGenerator(tempDir).generate(model);
+        new InitGenerator(tempDir).generate(model, true);
 
         assertEquals("existing build\n", Files.readString(tempDir.resolve("build.xml")));
         assertEquals("existing tasks\n", Files.readString(tempDir.resolve(".vscode/tasks.json")));

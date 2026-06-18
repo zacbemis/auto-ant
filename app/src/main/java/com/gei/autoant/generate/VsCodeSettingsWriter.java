@@ -4,7 +4,6 @@ import com.gei.autoant.model.ProjectModel;
 import com.gei.autoant.util.JsonUtils;
 
 import java.util.Arrays;
-import java.util.Locale;
 import java.util.stream.Collectors;
 
 public final class VsCodeSettingsWriter {
@@ -52,7 +51,7 @@ public final class VsCodeSettingsWriter {
             }
             builder.append(ch);
         }
-        return builder.toString().toLowerCase(Locale.ROOT);
+        return builder.toString();
     }
 
     private boolean isRegexMetaCharacter(char ch) {

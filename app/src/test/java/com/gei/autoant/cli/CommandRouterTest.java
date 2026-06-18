@@ -76,7 +76,7 @@ class CommandRouterTest {
 
         assertEquals(0, exitCode);
         assertTrue(harness.stdout().contains(".vscode/settings.json"));
-        assertTrue(harness.stdout().contains("VS Code File & Folder Watcher"));
+        assertTrue(harness.stdout().contains("auto-ant init --file-watcher"));
     }
 
     private static final class Harness {

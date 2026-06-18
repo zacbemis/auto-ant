@@ -17,7 +17,7 @@ public final class WatchCommand {
         context.out().println("auto-ant watch");
         context.out().println();
         context.out().println("auto-ant does not run its own long-lived file watcher.");
-        context.out().println("Run auto-ant init to generate .vscode/settings.json for the VS Code File & Folder Watcher extension.");
+        context.out().println("Run auto-ant init --file-watcher to generate .vscode/settings.json for the VS Code File Watcher extension.");
         context.out().println("Install the extension from https://github.com/appulate/vscode-file-watcher and let VS Code run ant sync-web on frontend saves.");
         return 0;
     }
@@ -26,6 +26,6 @@ public final class WatchCommand {
         context.out().println("Usage: auto-ant watch");
         context.out().println();
         context.out().println("The watcher workflow is configured through generated .vscode/settings.json.");
-        context.out().println("Install the VS Code File & Folder Watcher extension and run auto-ant init.");
+        context.out().println("Install the VS Code File Watcher extension and run auto-ant init --file-watcher.");
     }
 }

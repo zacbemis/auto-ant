@@ -10,7 +10,14 @@ import java.util.Map;
 import java.util.Optional;
 
 public final class CommandLine {
-    private static final Set<String> BOOLEAN_OPTIONS = Set.of("h", "help", "interactive", "strict");
+    private static final Set<String> BOOLEAN_OPTIONS = Set.of(
+            "h",
+            "help",
+            "interactive",
+            "strict",
+            "file-watcher",
+            "vscode-file-watcher"
+    );
     private static final Set<String> PATH_LIKE_OPTIONS = Set.of(
             "root",
             "src",
