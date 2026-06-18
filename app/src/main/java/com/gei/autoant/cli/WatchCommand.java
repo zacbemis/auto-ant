@@ -1,11 +1,5 @@
 package com.gei.autoant.cli;
 
-import com.gei.autoant.run.AntRunner;
-import com.gei.autoant.watch.ProjectWatcher;
-import com.gei.autoant.watch.WatchConfiguration;
-
-import java.io.IOException;
-
 public final class WatchCommand {
     private final CommandContext context;
 
@@ -20,40 +14,18 @@ public final class WatchCommand {
             return 0;
         }
 
-        try {
-            WatchConfiguration configuration = WatchConfiguration.load(context.projectRoot(), commandLine);
-            AntRunner antRunner = new AntRunner(context.out(), context.err());
-            ProjectWatcher watcher = new ProjectWatcher(
-                    configuration.projectRoot(),
-                    configuration.watchRoots(),
-                    configuration.debounceDelay(),
-                    target -> antRunner.runTarget(configuration.projectRoot(), target),
-                    context.out(),
-                    context.err()
-            );
-            watcher.watch();
-            return 0;
-        } catch (IllegalArgumentException ex) {
-            context.err().println("watch: " + ex.getMessage());
-            return 2;
-        } catch (IOException ex) {
-            context.err().println("watch: failed to watch project: " + ex.getMessage());
-            return 1;
-        } catch (InterruptedException ex) {
-            Thread.currentThread().interrupt();
-            context.err().println("watch: interrupted");
-            return 130;
-        }
+        context.out().println("auto-ant watch");
+        context.out().println();
+        context.out().println("auto-ant does not run its own long-lived file watcher.");
+        context.out().println("Run auto-ant init to generate .vscode/settings.json for the VS Code File & Folder Watcher extension.");
+        context.out().println("Install the extension from https://github.com/appulate/vscode-file-watcher and let VS Code run ant sync-web on frontend saves.");
+        return 0;
     }
 
     private void printHelp() {
-        context.out().println("Usage: auto-ant watch [options]");
+        context.out().println("Usage: auto-ant watch");
         context.out().println();
-        context.out().println("Watches configured source and web roots from auto-ant.properties.");
-        context.out().println("Frontend changes run: ant sync-web");
-        context.out().println();
-        context.out().println("Options:");
-        context.out().println("  --root <path>             Project root. Defaults to current directory.");
-        context.out().println("  --debounce-ms <ms>        Debounce delay. Defaults to watch.debounce.ms or 750.");
+        context.out().println("The watcher workflow is configured through generated .vscode/settings.json.");
+        context.out().println("Install the VS Code File & Folder Watcher extension and run auto-ant init.");
     }
 }

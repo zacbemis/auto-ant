@@ -68,6 +68,17 @@ class CommandRouterTest {
         assertTrue(harness.stdout().contains("user input required"));
     }
 
+    @Test
+    void watchCommandExplainsVsCodeExtensionWorkflow() {
+        Harness harness = new Harness(tempDir);
+
+        int exitCode = harness.router().run(new String[]{"watch"});
+
+        assertEquals(0, exitCode);
+        assertTrue(harness.stdout().contains(".vscode/settings.json"));
+        assertTrue(harness.stdout().contains("VS Code File & Folder Watcher"));
+    }
+
     private static final class Harness {
         private final ByteArrayOutputStream out = new ByteArrayOutputStream();
         private final ByteArrayOutputStream err = new ByteArrayOutputStream();
