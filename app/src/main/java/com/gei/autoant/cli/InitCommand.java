@@ -35,6 +35,10 @@ public final class InitCommand {
             boolean fileWatcherEnabled = commandLine.hasAnyOption("file-watcher", "vscode-file-watcher");
             NonInteractiveOptions options = NonInteractiveOptions.from(commandLine, context.projectRoot());
             ProjectModel model = new ProjectDetector().detect(options.projectRoot(), options);
+            if (options.interactive()) {
+                options = new InteractiveOptionsPrompter(context).promptForOverrides(model, options);
+                model = new ProjectDetector().detect(options.projectRoot(), options);
+            }
             GenerationResult result = new InitGenerator(model.projectRoot()).generate(model, fileWatcherEnabled);
 
             context.out().println("auto-ant init");
@@ -69,8 +73,21 @@ public final class InitCommand {
         context.out().println("Existing generated targets are never overwritten destructively.");
         context.out().println();
         context.out().println("Options:");
-        context.out().println("  --file-watcher           Generate .vscode/settings.json for the VS Code File Watcher extension.");
-        context.out().println("  --vscode-file-watcher    Alias for --file-watcher.");
+        context.out().println("  --interactive             Prompt to accept or override detected values before writing files.");
+        context.out().println("  --root <path>             Project root. Defaults to current directory.");
+        context.out().println("  --app <name>              Application name.");
+        context.out().println("  --context <path>          Context path.");
+        context.out().println("  --src <paths>             Comma-separated source roots.");
+        context.out().println("  --web <path>              Web root.");
+        context.out().println("  --webinf <path>           WEB-INF directory.");
+        context.out().println("  --lib <paths>             Comma-separated library roots.");
+        context.out().println("  --tomcat <path>           Tomcat home.");
+        context.out().println("  --ant <path>              Ant executable.");
+        context.out().println("  --java <release>          Java release.");
+        context.out().println("  --reload-strategy <name>  manager, touch-webxml, or none.");
+        context.out().println("  --tomcat-manager-url <url>");
+        context.out().println("  --file-watcher            Generate .vscode/settings.json for the VS Code File Watcher extension.");
+        context.out().println("  --vscode-file-watcher     Alias for --file-watcher.");
     }
 
     private void printFileWatcherExtensionStatus() {

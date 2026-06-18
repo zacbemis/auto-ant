@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -64,10 +65,45 @@ class InitCommandTest {
         assertFalse(harness.stdout().contains("VS Code File Watcher extension"));
     }
 
+    @Test
+    void interactiveInitPromptsForOverridesBeforeGeneratingFiles() throws IOException {
+        createSimpleProject();
+        Harness harness = new Harness(tempDir, extensionId -> true, (label, detectedValue) -> Optional.ofNullable(Map.of(
+                "java.release", "17",
+                "tomcat.home", "tomcat",
+                "lib.dirs", "web/WEB-INF/lib"
+        ).get(label)));
+
+        int exitCode = harness.command().run(new String[]{"--interactive"});
+
+        assertEquals(0, exitCode);
+        String sharedProperties = Files.readString(tempDir.resolve("auto-ant.properties"));
+        String localProperties = Files.readString(tempDir.resolve("auto-ant.local.properties"));
+        assertTrue(sharedProperties.contains("java.release=17"));
+        assertTrue(sharedProperties.contains("lib.dirs=web/WEB-INF/lib"));
+        assertTrue(localProperties.contains("tomcat.home=" + portable(tempDir.resolve("tomcat").toAbsolutePath().normalize())));
+    }
+
+    @Test
+    void initHelpDocumentsInteractiveAndOverrideOptions() {
+        Harness harness = new Harness(tempDir, extensionId -> true);
+
+        int exitCode = harness.command().run(new String[]{"--help"});
+
+        assertEquals(0, exitCode);
+        assertTrue(harness.stdout().contains("--interactive"));
+        assertTrue(harness.stdout().contains("--java <release>"));
+        assertTrue(harness.stdout().contains("--tomcat <path>"));
+    }
+
     private void createSimpleProject() throws IOException {
         Files.createDirectories(tempDir.resolve("src"));
         Files.createDirectories(tempDir.resolve("web/WEB-INF"));
         Files.writeString(tempDir.resolve("web/WEB-INF/web.xml"), "<web-app/>\n");
+    }
+
+    private static String portable(Path path) {
+        return path.toString().replace('\\', '/');
     }
 
     private static final class Harness {
@@ -76,7 +112,10 @@ class InitCommandTest {
         private final InitCommand command;
 
         private Harness(Path projectRoot, VsCodeExtensionChecker extensionChecker) {
-            PromptService promptService = (label, detectedValue) -> Optional.empty();
+            this(projectRoot, extensionChecker, (label, detectedValue) -> Optional.empty());
+        }
+
+        private Harness(Path projectRoot, VsCodeExtensionChecker extensionChecker, PromptService promptService) {
             CommandContext context = new CommandContext(projectRoot, new PrintStream(out), new PrintStream(err), promptService);
             this.command = new InitCommand(context, extensionChecker);
         }
