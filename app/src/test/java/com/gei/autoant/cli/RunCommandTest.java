@@ -12,6 +12,7 @@ import java.nio.file.Path;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class RunCommandTest {
@@ -43,6 +44,28 @@ class RunCommandTest {
         assertTrue(harness.stdout().contains("Usage: auto-ant run <ant-target> [more-targets]"));
         assertTrue(harness.stdout().contains("Available Ant targets from build.xml:"));
         assertTrue(harness.stdout().contains("sync-web - Copy frontend/web files."));
+    }
+
+    @Test
+    void helpPrefersAutoAntBuildXmlWhenItExists() throws IOException {
+        Files.writeString(tempDir.resolve("build.xml"), """
+                <project name=\"NetBeans\">
+                    <target name=\"netbeans-target\"/>
+                </project>
+                """);
+        Files.writeString(tempDir.resolve("auto-ant.build.xml"), """
+                <project name=\"AutoAnt\">
+                    <target name=\"sync-web\" description=\"Copy frontend/web files.\"/>
+                </project>
+                """);
+        Harness harness = new Harness(tempDir);
+
+        int exitCode = harness.command().run(new String[]{"--help"});
+
+        assertEquals(0, exitCode);
+        assertTrue(harness.stdout().contains("Available Ant targets from auto-ant.build.xml:"));
+        assertTrue(harness.stdout().contains("sync-web - Copy frontend/web files."));
+        assertFalse(harness.stdout().contains("netbeans-target"));
     }
 
     @Test

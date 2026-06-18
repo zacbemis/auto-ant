@@ -27,7 +27,15 @@ public final class AntRunner {
         return runTargets(projectRoot, List.of(target));
     }
 
+    public CommandResult runTarget(Path projectRoot, Path buildFile, String target) throws IOException, InterruptedException {
+        return runTargets(projectRoot, buildFile, List.of(target));
+    }
+
     public CommandResult runTargets(Path projectRoot, List<String> targets) throws IOException, InterruptedException {
+        return runTargets(projectRoot, null, targets);
+    }
+
+    public CommandResult runTargets(Path projectRoot, Path buildFile, List<String> targets) throws IOException, InterruptedException {
         if (targets.isEmpty()) {
             throw new IllegalArgumentException("At least one Ant target is required.");
         }
@@ -35,12 +43,16 @@ public final class AntRunner {
             validateTarget(target);
         }
 
-        List<String> command = buildCommand(targets);
+        List<String> command = buildCommand(buildFile, targets);
         out.println("Running: " + String.join(" ", command));
         return processRunner.run(projectRoot, command);
     }
 
     List<String> buildCommand(List<String> targets) {
+        return buildCommand(null, targets);
+    }
+
+    List<String> buildCommand(Path buildFile, List<String> targets) {
         String executable = new AntDetector().detect().value()
                 .map(Path::toString)
                 .orElse(AntDetector.executableName());
@@ -53,6 +65,10 @@ public final class AntRunner {
         command.add(executable);
         command.add("-logger");
         command.add(AntCommand.DEFAULT_LOGGER_CLASS);
+        if (buildFile != null) {
+            command.add("-f");
+            command.add(buildFile.toAbsolutePath().normalize().toString());
+        }
         command.addAll(targets);
         return command;
     }

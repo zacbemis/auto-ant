@@ -14,7 +14,11 @@ public final class AntCommand {
 
     public static String target(Path projectRoot, String target) {
         Path buildFile = projectRoot.toAbsolutePath().normalize().resolve("build.xml");
-        return "ant -logger " + DEFAULT_LOGGER_CLASS + " -f " + quote(buildFile) + " " + target;
+        return targetBuildFile(buildFile, target);
+    }
+
+    public static String targetBuildFile(Path buildFile, String target) {
+        return "ant -logger " + DEFAULT_LOGGER_CLASS + " -f " + quote(buildFile.toAbsolutePath().normalize()) + " " + target;
     }
 
     private static String quote(Path path) {

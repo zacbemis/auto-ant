@@ -39,6 +39,7 @@ class InitCommandTest {
         assertTrue(harness.stdout().contains("code --install-extension " + VsCodeExtensionChecker.FILE_WATCHER_EXTENSION_ID));
         assertEquals(List.of("deploy-exploded"), harness.deployedTargets());
         assertEquals(List.of(tempDir.toAbsolutePath().normalize()), harness.deployedRoots());
+        assertEquals(List.of(tempDir.resolve("build.xml").toAbsolutePath().normalize()), harness.deployedBuildFiles());
     }
 
     @Test
@@ -103,6 +104,23 @@ class InitCommandTest {
     }
 
     @Test
+    void initUsesAutoAntBuildFileWhenExistingBuildXmlBelongsToNetBeans() throws IOException {
+        createSimpleProject();
+        Files.writeString(tempDir.resolve("build.xml"), "<project name=\"NetBeans\"/>\n");
+        Harness harness = new Harness(tempDir, extensionId -> true);
+
+        int exitCode = harness.command().run(new String[]{"--app", "MyApp", "--java", "25"});
+
+        assertEquals(0, exitCode);
+        assertEquals("<project name=\"NetBeans\"/>\n", Files.readString(tempDir.resolve("build.xml")));
+        assertTrue(Files.exists(tempDir.resolve("auto-ant.build.xml")));
+        assertEquals(List.of(tempDir.resolve("auto-ant.build.xml").toAbsolutePath().normalize()), harness.deployedBuildFiles());
+        assertTrue(Files.readString(tempDir.resolve(".vscode/tasks.json")).contains("auto-ant.build.xml"));
+        assertTrue(Files.readString(tempDir.resolve(".vscode/settings.json")).contains("auto-ant.build.xml"));
+        assertTrue(harness.stdout().contains("Running initial deploy-exploded using auto-ant.build.xml"));
+    }
+
+    @Test
     void initHelpDocumentsAlwaysInteractiveSettingsAndOverrideOptions() {
         Harness harness = new Harness(tempDir, extensionId -> true);
 
@@ -132,6 +150,7 @@ class InitCommandTest {
         private final ByteArrayOutputStream err = new ByteArrayOutputStream();
         private final List<String> deployedTargets = new ArrayList<>();
         private final List<Path> deployedRoots = new ArrayList<>();
+        private final List<Path> deployedBuildFiles = new ArrayList<>();
         private final InitCommand command;
 
         private Harness(Path projectRoot, VsCodeExtensionChecker extensionChecker) {
@@ -144,8 +163,9 @@ class InitCommandTest {
 
         private Harness(Path projectRoot, VsCodeExtensionChecker extensionChecker, PromptService promptService, int deployExitCode) {
             CommandContext context = new CommandContext(projectRoot, new PrintStream(out), new PrintStream(err), promptService);
-            this.command = new InitCommand(context, extensionChecker, (deployRoot, target) -> {
+            this.command = new InitCommand(context, extensionChecker, (deployRoot, buildFile, target) -> {
                 deployedRoots.add(deployRoot.toAbsolutePath().normalize());
+                deployedBuildFiles.add(buildFile.toAbsolutePath().normalize());
                 deployedTargets.add(target);
                 return new CommandResult(deployExitCode);
             });
@@ -169,6 +189,10 @@ class InitCommandTest {
 
         private List<Path> deployedRoots() {
             return deployedRoots;
+        }
+
+        private List<Path> deployedBuildFiles() {
+            return deployedBuildFiles;
         }
     }
 }

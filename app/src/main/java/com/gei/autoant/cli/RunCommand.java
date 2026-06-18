@@ -1,5 +1,6 @@
 package com.gei.autoant.cli;
 
+import com.gei.autoant.generate.InitGenerator;
 import com.gei.autoant.run.AntRunner;
 import com.gei.autoant.run.CommandResult;
 
@@ -33,7 +34,7 @@ public final class RunCommand {
         }
 
         try {
-            CommandResult result = new AntRunner(context.out(), context.err()).runTargets(context.projectRoot(), commandLine.positionals());
+            CommandResult result = new AntRunner(context.out(), context.err()).runTargets(context.projectRoot(), selectedBuildFile(), commandLine.positionals());
             return result.exitCode();
         } catch (IOException ex) {
             context.err().println("run: failed to execute Ant: " + ex.getMessage());
@@ -57,7 +58,7 @@ public final class RunCommand {
 
     private void printAvailableTargets() {
         context.out().println();
-        Path buildXml = context.projectRoot().resolve("build.xml");
+        Path buildXml = selectedBuildFile();
         if (Files.notExists(buildXml)) {
             context.out().println("Available Ant targets: build.xml not found. Run auto-ant init first.");
             return;
@@ -76,7 +77,7 @@ public final class RunCommand {
             return;
         }
 
-        context.out().println("Available Ant targets from build.xml:");
+        context.out().println("Available Ant targets from " + context.projectRoot().relativize(buildXml).toString().replace('\\', '/') + ":");
         for (AntTarget target : targets) {
             if (target.description().isBlank()) {
                 context.out().println("  " + target.name());
@@ -84,6 +85,14 @@ public final class RunCommand {
                 context.out().println("  " + target.name() + " - " + target.description());
             }
         }
+    }
+
+    private Path selectedBuildFile() {
+        Path autoAntBuild = context.projectRoot().resolve(InitGenerator.AUTO_ANT_BUILD_FILE);
+        if (Files.exists(autoAntBuild)) {
+            return autoAntBuild;
+        }
+        return context.projectRoot().resolve("build.xml");
     }
 
     private List<AntTarget> readTargets(Path buildXml) throws Exception {

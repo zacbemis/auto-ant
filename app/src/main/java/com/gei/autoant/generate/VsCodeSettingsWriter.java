@@ -17,6 +17,10 @@ public final class VsCodeSettingsWriter {
     private static final String WEB_INF_VIEW_EXTENSIONS = FRONTEND_EXTENSIONS + "|tag|tagx|tld";
 
     public String write(ProjectModel model) {
+        return write(model, model.projectRoot().resolve("build.xml"));
+    }
+
+    public String write(ProjectModel model, Path buildFile) {
         String frontendPattern = publicFilesUnderWebRootPattern(ModelValues.relativePath(model, ModelValues.webRoot(model)));
         String webInfViewPattern = filesUnderPattern(ModelValues.relativePath(model, ModelValues.webInf(model)), "\\.(" + WEB_INF_VIEW_EXTENSIONS + ")$");
         String configPattern = ".*(WEB-INF[/\\\\]web\\.xml|context\\.xml|\\.(properties|xml|jar))$";
@@ -29,9 +33,9 @@ public final class VsCodeSettingsWriter {
                 + "  \"filewatcher.isSyncRunEvents\": true,\n"
                 + "  \"filewatcher.autoClearConsole\": false,\n"
                 + "  \"filewatcher.commands\": [\n"
-                + command(frontendPattern, AntCommand.target(model.projectRoot(), "sync-web")) + ",\n"
-                + command(webInfViewPattern, AntCommand.target(model.projectRoot(), "sync-web-inf")) + ",\n"
-                + command(configPattern, AntCommand.target(model.projectRoot(), "deploy-exploded") + " && auto-ant reload") + "\n"
+                + command(frontendPattern, AntCommand.targetBuildFile(buildFile, "sync-web")) + ",\n"
+                + command(webInfViewPattern, AntCommand.targetBuildFile(buildFile, "sync-web-inf")) + ",\n"
+                + command(configPattern, AntCommand.targetBuildFile(buildFile, "deploy-exploded") + " && auto-ant reload") + "\n"
                 + "  ]\n"
                 + "}\n";
     }

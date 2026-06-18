@@ -23,6 +23,7 @@ public final class CommandRouter {
             case "doctor" -> new DoctorCommand(context).run(commandArgs);
             case "init" -> new InitCommand(context).run(commandArgs);
             case "run" -> new RunCommand(context).run(commandArgs);
+            case "vscode", "refresh-vscode" -> new VsCodeCommand(context).run(commandArgs);
             case "reload" -> new ReloadCommand(context).run(commandArgs);
             default -> {
                 context.err().println("Unknown command: " + args[0]);
@@ -43,6 +44,7 @@ public final class CommandRouter {
         context.out().println("Usage:");
         context.out().println("  auto-ant doctor [options]");
         context.out().println("  auto-ant init [options]");
+        context.out().println("  auto-ant vscode [options]");
         context.out().println("  auto-ant run <ant-target>");
         context.out().println("  auto-ant reload");
         context.out().println();

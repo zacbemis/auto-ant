@@ -25,6 +25,7 @@ class InitGeneratorTest {
         GenerationResult result = new InitGenerator(tempDir).generate(model);
 
         assertEquals(6, result.files().size());
+        assertEquals(tempDir.resolve("build.xml").toAbsolutePath().normalize(), result.buildFile());
         assertTrue(Files.exists(tempDir.resolve("build.xml")));
         assertTrue(Files.exists(tempDir.resolve("auto-ant.properties")));
         assertTrue(Files.exists(tempDir.resolve("auto-ant.local.properties")));
@@ -127,7 +128,7 @@ class InitGeneratorTest {
     }
 
     @Test
-    void doesNotOverwriteExistingFiles() throws IOException {
+    void existingNetBeansBuildUsesStableAutoAntOverlayBuildFile() throws IOException {
         createSimpleProject();
         Files.writeString(tempDir.resolve("build.xml"), "existing build\n");
         Files.createDirectories(tempDir.resolve(".vscode"));
@@ -136,14 +137,18 @@ class InitGeneratorTest {
 
         var model = new ProjectDetector().detect(tempDir, NonInteractiveOptions.builder(tempDir).build());
 
-        new InitGenerator(tempDir).generate(model);
+        GenerationResult result = new InitGenerator(tempDir).generate(model);
 
+        assertEquals(tempDir.resolve("auto-ant.build.xml").toAbsolutePath().normalize(), result.buildFile());
         assertEquals("existing build\n", Files.readString(tempDir.resolve("build.xml")));
         assertEquals("existing tasks\n", Files.readString(tempDir.resolve(".vscode/tasks.json")));
         assertEquals("existing settings\n", Files.readString(tempDir.resolve(".vscode/settings.json")));
-        assertTrue(Files.exists(tempDir.resolve("build.xml.auto-ant-new")));
+        assertTrue(Files.exists(tempDir.resolve("auto-ant.build.xml")));
+        assertTrue(Files.readString(tempDir.resolve("auto-ant.build.xml")).contains("target name=\"deploy-exploded\""));
         assertTrue(Files.exists(tempDir.resolve(".vscode/tasks.auto-ant-new.json")));
         assertTrue(Files.exists(tempDir.resolve(".vscode/settings.auto-ant-new.json")));
+        assertTrue(Files.readString(tempDir.resolve(".vscode/tasks.auto-ant-new.json")).contains("auto-ant.build.xml"));
+        assertTrue(Files.readString(tempDir.resolve(".vscode/settings.auto-ant-new.json")).contains("auto-ant.build.xml"));
     }
 
     @Test

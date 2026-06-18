@@ -14,6 +14,7 @@ public final class CommandLine {
             "h",
             "help",
             "interactive",
+            "no-deploy",
             "strict"
     );
     private static final Set<String> PATH_LIKE_OPTIONS = Set.of(
