@@ -10,21 +10,34 @@ public final class VsCodeSettingsWriter {
     private static final String FRONTEND_EXTENSIONS = "jsp|jspf|html|htm|css|js|ts|png|jpg|jpeg|gif|svg|webp|ico|woff|woff2";
 
     public String write(ProjectModel model) {
-        String webDirPattern = pathPattern(ModelValues.relativePath(model, ModelValues.webRoot(model)));
-        String frontendPattern = webDirPattern + ".*\\.(" + FRONTEND_EXTENSIONS + ")$";
+        String frontendPattern = filesUnderPattern(ModelValues.relativePath(model, ModelValues.webRoot(model)), "\\.(" + FRONTEND_EXTENSIONS + ")$");
+        String backendPattern = ModelValues.sourceRoots(model).stream()
+                .map(sourceRoot -> filesUnderPattern(ModelValues.relativePath(model, sourceRoot), "\\.java$"))
+                .collect(Collectors.joining("|"));
+        String configPattern = ".*(WEB-INF[/\\\\]web\\.xml|context\\.xml|\\.(properties|xml|jar))$";
 
         return "{\n"
                 + "  \"filewatcher.isSyncRunEvents\": true,\n"
                 + "  \"filewatcher.autoClearConsole\": false,\n"
                 + "  \"filewatcher.commands\": [\n"
-                + "    {\n"
-                + "      \"match\": " + JsonUtils.quote(frontendPattern) + ",\n"
-                + "      \"event\": \"onFileChange\",\n"
-                + "      \"isAsync\": false,\n"
-                + "      \"cmd\": \"ant sync-web\"\n"
-                + "    }\n"
+                + command(frontendPattern, "ant sync-web") + ",\n"
+                + command(backendPattern, "ant compile-hot && auto-ant reload") + ",\n"
+                + command(configPattern, "ant deploy-exploded && auto-ant reload") + "\n"
                 + "  ]\n"
                 + "}\n";
+    }
+
+    private String command(String match, String command) {
+        return "    {\n"
+                + "      \"match\": " + JsonUtils.quote(match) + ",\n"
+                + "      \"event\": \"onFileChange\",\n"
+                + "      \"isAsync\": false,\n"
+                + "      \"cmd\": " + JsonUtils.quote(command) + "\n"
+                + "    }";
+    }
+
+    private String filesUnderPattern(String relativePath, String fileSuffixPattern) {
+        return pathPattern(relativePath) + ".*" + fileSuffixPattern;
     }
 
     private String pathPattern(String relativePath) {

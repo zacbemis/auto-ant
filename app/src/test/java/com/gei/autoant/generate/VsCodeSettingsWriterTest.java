@@ -32,6 +32,20 @@ class VsCodeSettingsWriterTest {
     }
 
     @Test
+    void writesBackendAndConfigWatcherCommands() throws IOException {
+        createProject("web");
+        var model = new ProjectDetector().detect(tempDir, NonInteractiveOptions.builder(tempDir).build());
+
+        String settings = new VsCodeSettingsWriter().write(model);
+
+        assertTrue(settings.contains("\"cmd\": \"ant compile-hot && auto-ant reload\""));
+        assertTrue(settings.contains("\\\\.java$"));
+        assertTrue(settings.contains("\"cmd\": \"ant deploy-exploded && auto-ant reload\""));
+        assertTrue(settings.contains("WEB-INF"));
+        assertTrue(settings.contains("properties|xml|jar"));
+    }
+
+    @Test
     void preservesDetectedWebDirectoryCaseInGeneratedRegex() throws IOException {
         createProject("WebContent");
         var model = new ProjectDetector().detect(tempDir, NonInteractiveOptions.builder(tempDir).webRoot(tempDir.resolve("WebContent")).build());

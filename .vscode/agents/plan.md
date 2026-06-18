@@ -9,7 +9,7 @@ auto-ant doctor
 auto-ant init
 ant clean-build
 ant deploy-exploded
-auto-ant watch
+auto-ant init --file-watcher
 ```
 
 The tool should not try to recreate a full NetBeans `nbproject/` setup. It should create a plain, understandable Ant project with VS Code integration.
@@ -25,13 +25,13 @@ doctor
   Detect the project layout, Tomcat setup, Java version, servlet style, and likely build settings.
 
 init
-  Generate build.xml, auto-ant.properties, auto-ant.local.properties, .vscode/tasks.json, and optional .gitignore entries.
+  Generate build.xml, auto-ant.properties, auto-ant.local.properties, .vscode/tasks.json, optional .vscode/settings.json watcher integration, and optional .gitignore entries.
 
 run
   Provide Java wrappers around Ant commands through AntRunner.
 
 watch
-  Watch source/frontend/backend files and run the right Ant target automatically.
+  Explain the VS Code File Watcher extension workflow and point users to generated watcher settings.
 ```
 
 The first production-quality milestone is:
@@ -46,7 +46,7 @@ ant deploy-exploded
 The second production-quality milestone is:
 
 ```bash
-auto-ant watch
+auto-ant init --file-watcher
 ```
 
 ---
@@ -110,6 +110,7 @@ auto-ant/
                 BuildXmlWriter.java
                 PropertiesWriter.java
                 VsCodeTasksWriter.java
+                VsCodeSettingsWriter.java
                 GitignoreWriter.java
                 TemplateRenderer.java
 
@@ -118,12 +119,9 @@ auto-ant/
                 ProcessRunner.java
                 CommandResult.java
 
-              watch/
-                ProjectWatcher.java
-                RecursiveWatchRegistrar.java
-                FileClassifier.java
-                Debouncer.java
-                ChangeBatch.java
+              vscode/
+                VsCodeExtensionChecker.java
+                CodeCliVsCodeExtensionChecker.java
 
               tomcat/
                 TomcatManagerClient.java
@@ -150,7 +148,8 @@ auto-ant/
             autoant/
               detect/
               generate/
-              watch/
+              vscode/
+              tomcat/
               run/
 
     test/
@@ -570,14 +569,19 @@ auto-ant.local.properties
 .gitignore additions
 ```
 
-Potentially later:
+When explicitly enabled with `--file-watcher`, `init` should also generate:
 
 ```text
 .vscode/settings.json
+```
+
+Potentially later:
+
+```text
 tools/auto-ant.jar
 ```
 
-For the first version, I would not copy the JAR into the project automatically unless you decide you want each repo to be self-contained.
+For the first version, do not copy the JAR into the project automatically unless you decide you want each repo to be self-contained.
 
 ## 6.2 Shared properties
 
@@ -640,6 +644,9 @@ If auto-ant.properties exists:
 
 If .vscode/tasks.json exists:
   create .vscode/tasks.auto-ant-new.json
+
+If .vscode/settings.json exists and --file-watcher is enabled:
+  create .vscode/settings.auto-ant-new.json
 
 If .gitignore exists:
   append only missing auto-ant entries
@@ -747,6 +754,7 @@ compare generated build.xml to expected output
 compare generated auto-ant.properties to expected output
 compare generated auto-ant.local.properties to expected output
 compare generated .vscode/tasks.json to expected output
+when --file-watcher is enabled, compare generated .vscode/settings.json to expected output
 verify existing files are not overwritten
 verify .gitignore entries are added once only
 ```
@@ -772,7 +780,7 @@ This will make refactoring much safer.
 
 ---
 
-# 9. VS Code task integration plan
+# 9. VS Code integration plan
 
 Generated `.vscode/tasks.json` should include:
 
@@ -804,35 +812,68 @@ Generated `.vscode/tasks.json` should include:
       "type": "shell",
       "command": "ant compile-hot",
       "problemMatcher": "$javac"
-    },
-    {
-      "label": "auto-ant: watch",
-      "type": "shell",
-      "command": "auto-ant watch",
-      "isBackground": true,
-      "problemMatcher": "$javac",
-      "presentation": {
-        "reveal": "always",
-        "panel": "dedicated"
-      }
     }
   ]
 }
 ```
 
-Later, if you choose to copy the built JAR into each project, the watch command can become:
+The file-watching workflow should not be implemented as a long-lived Java `WatchService` process inside `auto-ant`.
 
-```json
-"command": "java -jar tools/auto-ant.jar watch"
+Instead, `auto-ant init --file-watcher` should optionally generate `.vscode/settings.json` for the VS Code File Watcher extension:
+
+```text
+Extension repository: https://github.com/appulate/vscode-file-watcher
+VS Code extension id: appulate.filewatcher
 ```
 
-But I would start with:
+When the option is enabled, `init` should check `code --list-extensions` for `appulate.filewatcher`.
 
-```json
-"command": "auto-ant watch"
+Behavior:
+
+```text
+If appulate.filewatcher is installed:
+  Print that the extension was detected.
+
+If appulate.filewatcher is not installed or code is unavailable:
+  Generate settings.json anyway.
+  Print a clear warning and install command:
+    code --install-extension appulate.filewatcher
 ```
 
-because it keeps generated projects cleaner.
+Generated `.vscode/settings.json` should contain `filewatcher.commands` entries such as:
+
+```json
+{
+  "filewatcher.isSyncRunEvents": true,
+  "filewatcher.autoClearConsole": false,
+  "filewatcher.commands": [
+    {
+      "match": ".*[/\\]web[/\\].*\\.(jsp|jspf|html|htm|css|js|ts|png|jpg|jpeg|gif|svg|webp|ico|woff|woff2)$",
+      "event": "onFileChange",
+      "isAsync": false,
+      "cmd": "ant sync-web"
+    },
+    {
+      "match": ".*[/\\]src[/\\].*\\.java$",
+      "event": "onFileChange",
+      "isAsync": false,
+      "cmd": "ant compile-hot && auto-ant reload"
+    },
+    {
+      "match": ".*(WEB-INF[/\\]web\\.xml|context\\.xml|\\.(properties|xml|jar))$",
+      "event": "onFileChange",
+      "isAsync": false,
+      "cmd": "ant deploy-exploded && auto-ant reload"
+    }
+  ]
+}
+```
+
+`auto-ant watch` can remain as an informational command that explains this VS Code extension workflow and points users to:
+
+```json
+auto-ant init --file-watcher
+```
 
 ---
 
@@ -870,19 +911,23 @@ auto-ant run deploy-exploded
 auto-ant run sync-web
 ```
 
-The watcher should call `AntRunner` instead of shelling out manually.
+The generated VS Code File Watcher commands may call Ant targets directly because they run in the user's project shell. `AntRunner` remains the Java wrapper for `auto-ant run` and other Java-owned command execution.
 
 ---
 
-# 11. Watcher plan
+# 11. VS Code File Watcher plan
 
-The watcher comes after generation and AntRunner.
+The watcher workflow comes after generation and AntRunner, but it is configured through VS Code instead of a Java watcher process.
 
 Run:
 
 ```bash
-auto-ant watch
+auto-ant init --file-watcher
 ```
+
+This generates `.vscode/settings.json` using the `appulate.filewatcher` extension schema. It should be opt-in so projects that do not want workspace watcher automation do not get extra VS Code settings.
+
+`auto-ant watch` should not start a daemon. It should print instructions for installing/enabling the VS Code extension and rerunning `auto-ant init --file-watcher`.
 
 ## 11.1 Watch behavior
 
@@ -945,7 +990,18 @@ auto-ant reload
 
 ## 11.2 Debouncing
 
-The watcher should debounce events.
+Because watching is delegated to the VS Code File Watcher extension, `auto-ant` should not implement its own debounce loop.
+
+Use extension settings that keep commands predictable:
+
+```json
+"filewatcher.isSyncRunEvents": true,
+"isAsync": false
+```
+
+If extra throttling is needed later, prefer extension-supported behavior or generated command wrappers before reintroducing a Java watch loop.
+
+Historical Java watcher debounce target was:
 
 Example:
 
@@ -974,33 +1030,22 @@ watch.debounce.ms=750
 
 ## 11.3 Watcher output
 
-Example:
+The runtime output comes from the VS Code File Watcher extension plus the Ant/auto-ant commands it runs.
+
+Generated settings should make the behavior clear enough that users can inspect `.vscode/settings.json` and see:
 
 ```text
-auto-ant watch
-
-Watching:
-  src
-  web
-
-Changed:
-  web/index.jsp
-
-Detected frontend change.
-Running: ant sync-web
-Done.
+frontend save -> ant sync-web
+Java save     -> ant compile-hot && auto-ant reload
+config/JAR    -> ant deploy-exploded && auto-ant reload
 ```
 
-For Java:
+`auto-ant watch` output should be informational only:
 
 ```text
-Changed:
-  src/com/example/UserServlet.java
-
-Detected backend change.
-Running: ant compile-hot
-Reloading Tomcat context /MyApp
-Done.
+auto-ant does not run its own long-lived file watcher.
+Run auto-ant init --file-watcher to generate .vscode/settings.json.
+Install appulate.filewatcher if it is missing.
 ```
 
 ---
@@ -1074,8 +1119,9 @@ ServletNamespaceDetector
 TomcatDetector
 PropertiesWriter
 VsCodeTasksWriter
-FileClassifier
-Debouncer
+VsCodeSettingsWriter
+ReloadCommand
+TomcatManagerClient
 ```
 
 ## 13.2 Golden-file tests
@@ -1118,9 +1164,11 @@ For your actual repo:
 8. Edit JSP/CSS/JS.
 9. Run ant sync-web.
 10. Confirm browser sees change.
-11. Run auto-ant watch.
-12. Edit JSP/CSS/JS and confirm auto-sync.
-13. Edit Java and confirm compile-hot/reload.
+11. Install the VS Code File Watcher extension if needed:
+    code --install-extension appulate.filewatcher
+12. Run auto-ant init --file-watcher.
+13. Edit JSP/CSS/JS in VS Code and confirm auto-sync.
+14. Edit Java and confirm compile-hot/reload.
 ```
 
 ---
@@ -1295,17 +1343,20 @@ auto-ant can run generated Ant targets successfully.
 Deliverables:
 
 ```text
-WatchService integration
-recursive directory watch
-debounce
-frontend file classification
-sync-web on change
+VsCodeSettingsWriter
+auto-ant init --file-watcher
+appulate.filewatcher extension detection/warning
+generated frontend filewatcher command
+sync-web on frontend save
 ```
 
 Acceptance:
 
 ```text
-Saving JSP/CSS/JS triggers ant sync-web once.
+auto-ant init without --file-watcher does not generate .vscode/settings.json.
+auto-ant init --file-watcher generates .vscode/settings.json.
+Missing appulate.filewatcher is reported with an install command.
+Saving JSP/CSS/JS in VS Code triggers ant sync-web through the extension.
 No Tomcat reload occurs for frontend-only changes.
 ```
 
@@ -1316,9 +1367,11 @@ No Tomcat reload occurs for frontend-only changes.
 Deliverables:
 
 ```text
-backend file classification
-compile-hot on Java changes
-deploy-exploded on config/JAR changes
+generated backend filewatcher command
+generated config/JAR filewatcher command
+compile-hot on Java changes through VS Code File Watcher
+deploy-exploded on config/JAR changes through VS Code File Watcher
+auto-ant reload standalone command
 Tomcat Manager reload
 touch-webxml fallback
 ```
@@ -1326,8 +1379,9 @@ touch-webxml fallback
 Acceptance:
 
 ```text
-Saving Java file compiles classes and reloads app context.
-Changing web.xml redeploys and reloads.
+Saving Java file in VS Code runs ant compile-hot and auto-ant reload.
+Changing web.xml/config/JAR in VS Code runs ant deploy-exploded and auto-ant reload.
+auto-ant reload supports manager, touch-webxml, and none strategies.
 ```
 
 ---
