@@ -25,27 +25,29 @@ class InitGeneratorTest {
         GenerationResult result = new InitGenerator(tempDir).generate(model);
 
         assertEquals(6, result.files().size());
-        assertEquals(tempDir.resolve("build.xml").toAbsolutePath().normalize(), result.buildFile());
-        assertTrue(Files.exists(tempDir.resolve("build.xml")));
+        assertEquals(tempDir.resolve("auto-ant.build.xml").toAbsolutePath().normalize(), result.buildFile());
+        assertFalse(Files.exists(tempDir.resolve("build.xml")));
+        assertTrue(Files.exists(tempDir.resolve("auto-ant.build.xml")));
         assertTrue(Files.exists(tempDir.resolve("auto-ant.properties")));
         assertTrue(Files.exists(tempDir.resolve("auto-ant.local.properties")));
         assertTrue(Files.exists(tempDir.resolve(".vscode/tasks.json")));
         assertTrue(Files.exists(tempDir.resolve(".vscode/settings.json")));
-        assertTrue(Files.readString(tempDir.resolve("build.xml")).contains("target name=\"clean-build\""));
-        assertTrue(Files.readString(tempDir.resolve("build.xml")).contains("target name=\"deploy-exploded\""));
-        assertTrue(Files.readString(tempDir.resolve("build.xml")).contains("property name=\"deploy.dir\""));
-        assertTrue(Files.readString(tempDir.resolve("build.xml")).contains("target name=\"write-context-descriptor\""));
-        assertTrue(Files.readString(tempDir.resolve("build.xml")).contains("${catalina.base}/conf/Catalina/localhost"));
-        assertTrue(Files.readString(tempDir.resolve("build.xml")).contains("&lt;Context reloadable=&quot;true&quot;/&gt;"));
-        assertTrue(Files.readString(tempDir.resolve("build.xml")).contains("&lt;Context docBase=&quot;${context.descriptor.docBase}&quot; reloadable=&quot;true&quot;/&gt;"));
-        assertTrue(Files.readString(tempDir.resolve("build.xml")).contains("${deploy.dir}/WEB-INF/classes"));
-        assertTrue(Files.readString(tempDir.resolve("build.xml")).contains("${tomcat.home}/lib"));
-        assertTrue(Files.readString(tempDir.resolve("build.xml")).contains("${catalina.base}/lib"));
-        assertTrue(Files.readString(tempDir.resolve("build.xml")).contains("exclude name=\"WEB-INF/**\""));
-        assertTrue(Files.readString(tempDir.resolve("build.xml")).contains("target name=\"sync-web-inf\""));
-        assertTrue(Files.readString(tempDir.resolve("build.xml")).contains("include name=\"**/*.jsp\""));
-        assertTrue(Files.readString(tempDir.resolve("build.xml")).contains("${deploy.dir}/WEB-INF"));
-        assertTrue(Files.readString(tempDir.resolve("build.xml")).contains("Set deploy.dir to the running exploded app folder"));
+        String buildXml = Files.readString(tempDir.resolve("auto-ant.build.xml"));
+        assertTrue(buildXml.contains("target name=\"clean-build\""));
+        assertTrue(buildXml.contains("target name=\"deploy-exploded\""));
+        assertTrue(buildXml.contains("property name=\"deploy.dir\""));
+        assertTrue(buildXml.contains("target name=\"write-context-descriptor\""));
+        assertTrue(buildXml.contains("${catalina.base}/conf/Catalina/localhost"));
+        assertTrue(buildXml.contains("&lt;Context reloadable=&quot;true&quot;/&gt;"));
+        assertTrue(buildXml.contains("&lt;Context docBase=&quot;${context.descriptor.docBase}&quot; reloadable=&quot;true&quot;/&gt;"));
+        assertTrue(buildXml.contains("${deploy.dir}/WEB-INF/classes"));
+        assertTrue(buildXml.contains("${tomcat.home}/lib"));
+        assertTrue(buildXml.contains("${catalina.base}/lib"));
+        assertTrue(buildXml.contains("exclude name=\"WEB-INF/**\""));
+        assertTrue(buildXml.contains("target name=\"sync-web-inf\""));
+        assertTrue(buildXml.contains("include name=\"**/*.jsp\""));
+        assertTrue(buildXml.contains("${deploy.dir}/WEB-INF"));
+        assertTrue(buildXml.contains("Set deploy.dir to the running exploded app folder"));
         assertTrue(Files.readString(tempDir.resolve("auto-ant.properties")).contains("app.name=MyApp"));
         assertTrue(Files.readString(tempDir.resolve("auto-ant.properties")).contains("context.deploy.name=MyApp"));
         assertTrue(Files.readString(tempDir.resolve("auto-ant.properties")).contains("context.descriptor.file.name=MyApp.xml"));
@@ -71,7 +73,7 @@ class InitGeneratorTest {
 
         String sharedProperties = Files.readString(tempDir.resolve("auto-ant.properties"));
         String localProperties = Files.readString(tempDir.resolve("auto-ant.local.properties"));
-        String buildXml = Files.readString(tempDir.resolve("build.xml"));
+        String buildXml = Files.readString(tempDir.resolve("auto-ant.build.xml"));
 
         assertTrue(sharedProperties.contains("app.name=FEMSWeb"));
         assertTrue(sharedProperties.contains("context.path=/fems"));

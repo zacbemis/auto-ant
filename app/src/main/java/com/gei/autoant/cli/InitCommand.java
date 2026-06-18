@@ -92,10 +92,10 @@ public final class InitCommand {
     private void printHelp() {
         context.out().println("Usage: auto-ant init [options]");
         context.out().println();
-        context.out().println("Prompts to accept or override detected values, then generates build.xml, auto-ant properties,");
+        context.out().println("Prompts to accept or override detected values, then generates auto-ant.build.xml, auto-ant properties,");
         context.out().println("VS Code tasks/settings, safe .gitignore entries, and runs deploy-exploded.");
         context.out().println("The VS Code settings include File Watcher commands and Java library paths.");
-        context.out().println("Existing generated targets are never overwritten destructively.");
+        context.out().println("Project build.xml files are never modified.");
         context.out().println();
         context.out().println("Options:");
         context.out().println("  --root <path>             Project root. Defaults to current directory.");
@@ -148,9 +148,7 @@ public final class InitCommand {
         context.out().println();
         String relativeBuildFile = projectRoot.relativize(buildFile).toString().replace('\\', '/');
         context.out().println("Active auto-ant build file: " + relativeBuildFile);
-        if (InitGenerator.AUTO_ANT_BUILD_FILE.equals(buildFile.getFileName().toString())) {
-            context.out().println("Existing build.xml was preserved; VS Code and auto-ant run commands use " + relativeBuildFile + ".");
-        }
+        context.out().println("Project build.xml files are left untouched; VS Code and auto-ant run commands use " + relativeBuildFile + ".");
     }
 
     private List<String> deployBlockers(ProjectModel model) {

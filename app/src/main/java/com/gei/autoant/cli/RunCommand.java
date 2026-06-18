@@ -59,8 +59,9 @@ public final class RunCommand {
     private void printAvailableTargets() {
         context.out().println();
         Path buildXml = selectedBuildFile();
+        String relativeBuildFile = relativeBuildFile(buildXml);
         if (Files.notExists(buildXml)) {
-            context.out().println("Available Ant targets: build.xml not found. Run auto-ant init first.");
+            context.out().println("Available Ant targets: " + relativeBuildFile + " not found. Run auto-ant init first.");
             return;
         }
 
@@ -68,16 +69,16 @@ public final class RunCommand {
         try {
             targets = readTargets(buildXml);
         } catch (Exception ex) {
-            context.out().println("Available Ant targets: unable to read build.xml: " + ex.getMessage());
+            context.out().println("Available Ant targets: unable to read " + relativeBuildFile + ": " + ex.getMessage());
             return;
         }
 
         if (targets.isEmpty()) {
-            context.out().println("Available Ant targets: none found in build.xml.");
+            context.out().println("Available Ant targets: none found in " + relativeBuildFile + ".");
             return;
         }
 
-        context.out().println("Available Ant targets from " + context.projectRoot().relativize(buildXml).toString().replace('\\', '/') + ":");
+        context.out().println("Available Ant targets from " + relativeBuildFile + ":");
         for (AntTarget target : targets) {
             if (target.description().isBlank()) {
                 context.out().println("  " + target.name());
@@ -88,11 +89,11 @@ public final class RunCommand {
     }
 
     private Path selectedBuildFile() {
-        Path autoAntBuild = context.projectRoot().resolve(InitGenerator.AUTO_ANT_BUILD_FILE);
-        if (Files.exists(autoAntBuild)) {
-            return autoAntBuild;
-        }
-        return context.projectRoot().resolve("build.xml");
+        return context.projectRoot().resolve(InitGenerator.AUTO_ANT_BUILD_FILE);
+    }
+
+    private String relativeBuildFile(Path buildFile) {
+        return context.projectRoot().relativize(buildFile).toString().replace('\\', '/');
     }
 
     private List<AntTarget> readTargets(Path buildXml) throws Exception {

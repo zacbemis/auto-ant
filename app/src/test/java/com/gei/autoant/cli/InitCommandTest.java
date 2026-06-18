@@ -30,7 +30,7 @@ class InitCommandTest {
         createSimpleProject();
         Harness harness = new Harness(tempDir, extensionId -> false);
 
-        int exitCode = harness.command().run(new String[]{"--app", "MyApp", "--java", "25"});
+        int exitCode = harness.command().run(initArgs());
 
         assertEquals(0, exitCode);
         assertTrue(Files.exists(tempDir.resolve(".vscode/settings.json")));
@@ -39,7 +39,7 @@ class InitCommandTest {
         assertTrue(harness.stdout().contains("code --install-extension " + VsCodeExtensionChecker.FILE_WATCHER_EXTENSION_ID));
         assertEquals(List.of("deploy-exploded"), harness.deployedTargets());
         assertEquals(List.of(tempDir.toAbsolutePath().normalize()), harness.deployedRoots());
-        assertEquals(List.of(tempDir.resolve("build.xml").toAbsolutePath().normalize()), harness.deployedBuildFiles());
+        assertEquals(List.of(tempDir.resolve("auto-ant.build.xml").toAbsolutePath().normalize()), harness.deployedBuildFiles());
     }
 
     @Test
@@ -47,7 +47,7 @@ class InitCommandTest {
         createSimpleProject();
         Harness harness = new Harness(tempDir, extensionId -> true);
 
-        int exitCode = harness.command().run(new String[]{"--app", "MyApp", "--java", "25"});
+        int exitCode = harness.command().run(initArgs());
 
         assertEquals(0, exitCode);
         assertTrue(harness.stdout().contains("VS Code File Watcher extension detected"));
@@ -64,7 +64,7 @@ class InitCommandTest {
             return true;
         });
 
-        int exitCode = harness.command().run(new String[]{"--app", "MyApp", "--java", "25"});
+        int exitCode = harness.command().run(initArgs());
 
         assertEquals(0, exitCode);
         assertTrue(Files.exists(tempDir.resolve(".vscode/settings.json")));
@@ -96,7 +96,7 @@ class InitCommandTest {
         createSimpleProject();
         Harness harness = new Harness(tempDir, extensionId -> true, (label, detectedValue) -> Optional.empty(), 7);
 
-        int exitCode = harness.command().run(new String[]{"--app", "MyApp", "--java", "25"});
+        int exitCode = harness.command().run(initArgs());
 
         assertEquals(7, exitCode);
         assertEquals(List.of("deploy-exploded"), harness.deployedTargets());
@@ -109,7 +109,7 @@ class InitCommandTest {
         Files.writeString(tempDir.resolve("build.xml"), "<project name=\"NetBeans\"/>\n");
         Harness harness = new Harness(tempDir, extensionId -> true);
 
-        int exitCode = harness.command().run(new String[]{"--app", "MyApp", "--java", "25"});
+        int exitCode = harness.command().run(initArgs());
 
         assertEquals(0, exitCode);
         assertEquals("<project name=\"NetBeans\"/>\n", Files.readString(tempDir.resolve("build.xml")));
@@ -118,6 +118,10 @@ class InitCommandTest {
         assertTrue(Files.readString(tempDir.resolve(".vscode/tasks.json")).contains("auto-ant.build.xml"));
         assertTrue(Files.readString(tempDir.resolve(".vscode/settings.json")).contains("auto-ant.build.xml"));
         assertTrue(harness.stdout().contains("Running initial deploy-exploded using auto-ant.build.xml"));
+    }
+
+    private String[] initArgs() {
+        return new String[]{"--app", "MyApp", "--java", "25", "--tomcat", tempDir.resolve("tomcat").toString()};
     }
 
     @Test

@@ -10,7 +10,7 @@ final class VsCodeSettingsMerger {
         List<Member> existingMembers = readMembers(existingSettings);
         List<Member> generatedMembers = readMembers(generatedSettings);
         if (existingMembers == null || generatedMembers == null) {
-            return generatedSettings;
+            return null;
         }
 
         Map<String, Member> generatedByKey = new LinkedHashMap<>();

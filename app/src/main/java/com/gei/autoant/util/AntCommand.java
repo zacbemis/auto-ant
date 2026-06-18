@@ -13,7 +13,7 @@ public final class AntCommand {
     }
 
     public static String target(Path projectRoot, String target) {
-        Path buildFile = projectRoot.toAbsolutePath().normalize().resolve("build.xml");
+        Path buildFile = projectRoot.toAbsolutePath().normalize().resolve("auto-ant.build.xml");
         return targetBuildFile(buildFile, target);
     }
 

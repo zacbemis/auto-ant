@@ -17,7 +17,7 @@ public final class VsCodeSettingsWriter {
     private static final String WEB_INF_VIEW_EXTENSIONS = FRONTEND_EXTENSIONS + "|tag|tagx|tld";
 
     public String write(ProjectModel model) {
-        return write(model, model.projectRoot().resolve("build.xml"));
+        return write(model, model.projectRoot().resolve(InitGenerator.AUTO_ANT_BUILD_FILE));
     }
 
     public String write(ProjectModel model, Path buildFile) {
