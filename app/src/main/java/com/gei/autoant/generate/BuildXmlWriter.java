@@ -1,10 +1,8 @@
 package com.gei.autoant.generate;
 
 import com.gei.autoant.model.ProjectModel;
-import com.gei.autoant.util.PathUtils;
 
 import java.nio.file.Path;
-import java.util.List;
 
 public final class BuildXmlWriter {
     public String write(ProjectModel model) {
