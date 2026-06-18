@@ -23,7 +23,6 @@ public final class CommandRouter {
             case "doctor" -> new DoctorCommand(context).run(commandArgs);
             case "init" -> new InitCommand(context).run(commandArgs);
             case "run" -> new RunCommand(context).run(commandArgs);
-            case "watch" -> new WatchCommand(context).run(commandArgs);
             case "reload" -> new ReloadCommand(context).run(commandArgs);
             default -> {
                 context.err().println("Unknown command: " + args[0]);
@@ -45,7 +44,6 @@ public final class CommandRouter {
         context.out().println("  auto-ant doctor [options]");
         context.out().println("  auto-ant init [options]");
         context.out().println("  auto-ant run <ant-target>");
-        context.out().println("  auto-ant watch");
         context.out().println("  auto-ant reload");
         context.out().println();
         context.out().println("Common options:");
@@ -58,6 +56,6 @@ public final class CommandRouter {
         context.out().println("  --lib <paths>             Comma-separated library directories.");
         context.out().println("  --tomcat <path>           Tomcat home override.");
         context.out().println("  --java <release>          Java release override.");
-        context.out().println("  --interactive             Accept or override detected values interactively.");
+        context.out().println("  --interactive             Prompt in doctor mode; init always prompts before writing.");
     }
 }

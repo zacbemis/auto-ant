@@ -9,7 +9,6 @@ auto-ant doctor
 auto-ant init
 ant clean-build
 ant deploy-exploded
-auto-ant init --file-watcher
 ```
 
 The tool should not try to recreate a full NetBeans `nbproject/` setup. It should create a plain, understandable Ant project with VS Code integration.
@@ -25,13 +24,13 @@ doctor
   Detect the project layout, Tomcat setup, Java version, servlet style, and likely build settings.
 
 init
-  Generate build.xml, auto-ant.properties, auto-ant.local.properties, .vscode/tasks.json, optional .vscode/settings.json watcher integration, and optional .gitignore entries.
+  Prompt for detected values, then generate build.xml, auto-ant properties, VS Code tasks/settings, and safe .gitignore entries.
 
 run
   Provide Java wrappers around Ant commands through AntRunner.
 
-watch
-  Explain the VS Code File Watcher extension workflow and point users to generated watcher settings.
+reload
+  Reload Tomcat using the configured strategy.
 ```
 
 The first production-quality milestone is:
@@ -43,10 +42,10 @@ ant clean-build
 ant deploy-exploded
 ```
 
-The second production-quality milestone is:
+VS Code File Watcher integration is part of `init`:
 
 ```bash
-auto-ant init --file-watcher
+auto-ant init
 ```
 
 ---
@@ -76,7 +75,6 @@ auto-ant/
                 CommandRouter.java
                 DoctorCommand.java
                 InitCommand.java
-                WatchCommand.java
                 ReloadCommand.java
                 RunCommand.java
 
@@ -86,7 +84,6 @@ auto-ant/
                 WebRootDetector.java
                 LibraryDetector.java
                 ServletNamespaceDetector.java
-                TomcatDetector.java
                 AntDetector.java
                 JavaDetector.java
 
@@ -98,7 +95,6 @@ auto-ant/
                 LibraryRoot.java
                 ServletNamespace.java
                 ReloadStrategy.java
-                ToolConfig.java
 
               prompt/
                 PromptService.java
@@ -112,7 +108,6 @@ auto-ant/
                 VsCodeTasksWriter.java
                 VsCodeSettingsWriter.java
                 GitignoreWriter.java
-                TemplateRenderer.java
 
               run/
                 AntRunner.java
@@ -179,7 +174,6 @@ auto-ant init
 auto-ant run clean-build
 auto-ant run deploy-exploded
 auto-ant run sync-web
-auto-ant watch
 auto-ant reload
 ```
 
@@ -566,13 +560,8 @@ build.xml
 auto-ant.properties
 auto-ant.local.properties
 .vscode/tasks.json
-.gitignore additions
-```
-
-When explicitly enabled with `--file-watcher`, `init` should also generate:
-
-```text
 .vscode/settings.json
+.gitignore additions
 ```
 
 Potentially later:
@@ -645,7 +634,7 @@ If auto-ant.properties exists:
 If .vscode/tasks.json exists:
   create .vscode/tasks.auto-ant-new.json
 
-If .vscode/settings.json exists and --file-watcher is enabled:
+If .vscode/settings.json exists:
   create .vscode/settings.auto-ant-new.json
 
 If .gitignore exists:
@@ -754,7 +743,7 @@ compare generated build.xml to expected output
 compare generated auto-ant.properties to expected output
 compare generated auto-ant.local.properties to expected output
 compare generated .vscode/tasks.json to expected output
-when --file-watcher is enabled, compare generated .vscode/settings.json to expected output
+compare generated .vscode/settings.json to expected output
 verify existing files are not overwritten
 verify .gitignore entries are added once only
 ```
@@ -819,14 +808,14 @@ Generated `.vscode/tasks.json` should include:
 
 The file-watching workflow should not be implemented as a long-lived Java `WatchService` process inside `auto-ant`.
 
-Instead, `auto-ant init --file-watcher` should optionally generate `.vscode/settings.json` for the VS Code File Watcher extension:
+Instead, `auto-ant init` generates `.vscode/settings.json` for the VS Code File Watcher extension and Java library discovery:
 
 ```text
 Extension repository: https://github.com/appulate/vscode-file-watcher
 VS Code extension id: appulate.filewatcher
 ```
 
-When the option is enabled, `init` should check `code --list-extensions` for `appulate.filewatcher`.
+`init` should check `code --list-extensions` for `appulate.filewatcher`.
 
 Behavior:
 
@@ -867,12 +856,6 @@ Generated `.vscode/settings.json` should contain `filewatcher.commands` entries 
     }
   ]
 }
-```
-
-`auto-ant watch` can remain as an informational command that explains this VS Code extension workflow and points users to:
-
-```json
-auto-ant init --file-watcher
 ```
 
 ---
@@ -922,12 +905,10 @@ The watcher workflow comes after generation and AntRunner, but it is configured 
 Run:
 
 ```bash
-auto-ant init --file-watcher
+auto-ant init
 ```
 
-This generates `.vscode/settings.json` using the `appulate.filewatcher` extension schema. It should be opt-in so projects that do not want workspace watcher automation do not get extra VS Code settings.
-
-`auto-ant watch` should not start a daemon. It should print instructions for installing/enabling the VS Code extension and rerunning `auto-ant init --file-watcher`.
+This generates `.vscode/settings.json` using the `appulate.filewatcher` extension schema and Java referenced library settings.
 
 ## 11.1 Watch behavior
 
@@ -1040,13 +1021,7 @@ Java save     -> ant compile-hot && auto-ant reload
 config/JAR    -> ant deploy-exploded && auto-ant reload
 ```
 
-`auto-ant watch` output should be informational only:
-
-```text
-auto-ant does not run its own long-lived file watcher.
-Run auto-ant init --file-watcher to generate .vscode/settings.json.
-Install appulate.filewatcher if it is missing.
-```
+There is no standalone `auto-ant watch` command; runtime watcher output comes from VS Code, Ant, and any `auto-ant reload` command invoked by generated settings.
 
 ---
 
@@ -1116,7 +1091,6 @@ SourceRootDetector
 WebRootDetector
 LibraryDetector
 ServletNamespaceDetector
-TomcatDetector
 PropertiesWriter
 VsCodeTasksWriter
 VsCodeSettingsWriter
@@ -1166,7 +1140,7 @@ For your actual repo:
 10. Confirm browser sees change.
 11. Install the VS Code File Watcher extension if needed:
     code --install-extension appulate.filewatcher
-12. Run auto-ant init --file-watcher.
+12. Run auto-ant init.
 13. Edit JSP/CSS/JS in VS Code and confirm auto-sync.
 14. Edit Java and confirm compile-hot/reload.
 ```
@@ -1344,7 +1318,7 @@ Deliverables:
 
 ```text
 VsCodeSettingsWriter
-auto-ant init --file-watcher
+auto-ant init
 appulate.filewatcher extension detection/warning
 generated frontend filewatcher command
 sync-web on frontend save
@@ -1353,8 +1327,7 @@ sync-web on frontend save
 Acceptance:
 
 ```text
-auto-ant init without --file-watcher does not generate .vscode/settings.json.
-auto-ant init --file-watcher generates .vscode/settings.json.
+auto-ant init generates .vscode/settings.json.
 Missing appulate.filewatcher is reported with an install command.
 Saving JSP/CSS/JS in VS Code triggers ant sync-web through the extension.
 No Tomcat reload occurs for frontend-only changes.

@@ -10,6 +10,7 @@ import java.nio.file.Path;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class CommandRouterTest {
@@ -25,6 +26,7 @@ class CommandRouterTest {
         assertEquals(0, exitCode);
         assertTrue(harness.stdout().contains("auto-ant doctor"));
         assertTrue(harness.stdout().contains("auto-ant init"));
+        assertFalse(harness.stdout().contains("auto-ant watch"));
     }
 
     @Test
@@ -69,14 +71,14 @@ class CommandRouterTest {
     }
 
     @Test
-    void watchCommandExplainsVsCodeExtensionWorkflow() {
+    void watchCommandIsNoLongerRouted() {
         Harness harness = new Harness(tempDir);
 
         int exitCode = harness.router().run(new String[]{"watch"});
 
-        assertEquals(0, exitCode);
-        assertTrue(harness.stdout().contains(".vscode/settings.json"));
-        assertTrue(harness.stdout().contains("auto-ant init --file-watcher"));
+        assertEquals(2, exitCode);
+        assertTrue(harness.stderr().contains("Unknown command: watch"));
+        assertFalse(harness.stdout().contains("auto-ant watch"));
     }
 
     private static final class Harness {

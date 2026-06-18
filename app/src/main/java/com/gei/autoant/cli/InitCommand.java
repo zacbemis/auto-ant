@@ -32,23 +32,18 @@ public final class InitCommand {
         }
 
         try {
-            boolean fileWatcherEnabled = commandLine.hasAnyOption("file-watcher", "vscode-file-watcher");
             NonInteractiveOptions options = NonInteractiveOptions.from(commandLine, context.projectRoot());
             ProjectModel model = new ProjectDetector().detect(options.projectRoot(), options);
-            if (options.interactive()) {
-                options = new InteractiveOptionsPrompter(context).promptForOverrides(model, options);
-                model = new ProjectDetector().detect(options.projectRoot(), options);
-            }
-            GenerationResult result = new InitGenerator(model.projectRoot()).generate(model, fileWatcherEnabled);
+            options = new InteractiveOptionsPrompter(context).promptForOverrides(model, options);
+            model = new ProjectDetector().detect(options.projectRoot(), options);
+            GenerationResult result = new InitGenerator(model.projectRoot()).generate(model);
 
             context.out().println("auto-ant init");
             context.out().println();
             for (GeneratedFile generatedFile : result.files()) {
                 context.out().println(generatedFile.message());
             }
-            if (fileWatcherEnabled) {
-                printFileWatcherExtensionStatus();
-            }
+            printFileWatcherExtensionStatus();
             if (!model.warnings().isEmpty()) {
                 context.out().println();
                 context.out().println("Detection warnings:");
@@ -69,11 +64,12 @@ public final class InitCommand {
     private void printHelp() {
         context.out().println("Usage: auto-ant init [options]");
         context.out().println();
-        context.out().println("Generates build.xml, auto-ant properties, VS Code tasks, and safe .gitignore entries.");
+        context.out().println("Prompts to accept or override detected values, then generates build.xml, auto-ant properties,");
+        context.out().println("VS Code tasks/settings, and safe .gitignore entries.");
+        context.out().println("The VS Code settings include File Watcher commands and Java library paths.");
         context.out().println("Existing generated targets are never overwritten destructively.");
         context.out().println();
         context.out().println("Options:");
-        context.out().println("  --interactive             Prompt to accept or override detected values before writing files.");
         context.out().println("  --root <path>             Project root. Defaults to current directory.");
         context.out().println("  --app <name>              Application name.");
         context.out().println("  --context <path>          Context path.");
@@ -86,8 +82,6 @@ public final class InitCommand {
         context.out().println("  --java <release>          Java release.");
         context.out().println("  --reload-strategy <name>  manager, touch-webxml, or none.");
         context.out().println("  --tomcat-manager-url <url>");
-        context.out().println("  --file-watcher            Generate .vscode/settings.json for the VS Code File Watcher extension.");
-        context.out().println("  --vscode-file-watcher     Alias for --file-watcher.");
     }
 
     private void printFileWatcherExtensionStatus() {

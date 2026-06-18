@@ -14,9 +14,7 @@ public final class CommandLine {
             "h",
             "help",
             "interactive",
-            "strict",
-            "file-watcher",
-            "vscode-file-watcher"
+            "strict"
     );
     private static final Set<String> PATH_LIKE_OPTIONS = Set.of(
             "root",

@@ -23,6 +23,8 @@ class VsCodeSettingsWriterTest {
 
         String settings = new VsCodeSettingsWriter().write(model);
 
+        assertTrue(settings.contains("\"java.project.referencedLibraries\""));
+        assertTrue(settings.contains("web/WEB-INF/lib/**/*.jar"));
         assertTrue(settings.contains("\"filewatcher.isSyncRunEvents\": true"));
         assertTrue(settings.contains("\"filewatcher.commands\""));
         assertTrue(settings.contains("\"event\": \"onFileChange\""));
@@ -80,9 +82,26 @@ class VsCodeSettingsWriterTest {
         assertTrue(settings.contains("web\\\\.v1"));
     }
 
+    @Test
+    void writesTomcatLibrariesWhenTomcatHomeIsKnown() throws IOException {
+        createProject("web");
+        Path tomcatHome = tempDir.resolve("apache-tomcat");
+        var model = new ProjectDetector().detect(tempDir, NonInteractiveOptions.builder(tempDir)
+                .tomcatHome(tomcatHome)
+                .build());
+
+        String settings = new VsCodeSettingsWriter().write(model);
+
+        assertTrue(settings.contains(portable(tomcatHome.resolve("lib")) + "/**/*.jar"));
+    }
+
     private void createProject(String webDirectory) throws IOException {
         Files.createDirectories(tempDir.resolve("src"));
-        Files.createDirectories(tempDir.resolve(webDirectory).resolve("WEB-INF"));
+        Files.createDirectories(tempDir.resolve(webDirectory).resolve("WEB-INF/lib"));
         Files.writeString(tempDir.resolve(webDirectory).resolve("WEB-INF/web.xml"), "<web-app/>\n");
+    }
+
+    private String portable(Path path) {
+        return path.toString().replace('\\', '/');
     }
 }

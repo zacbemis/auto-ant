@@ -3,8 +3,13 @@ package com.gei.autoant.generate;
 import com.gei.autoant.model.ProjectModel;
 import com.gei.autoant.util.AntCommand;
 import com.gei.autoant.util.JsonUtils;
+import com.gei.autoant.util.PathUtils;
 
+import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.stream.Collectors;
 
 public final class VsCodeSettingsWriter {
@@ -15,8 +20,12 @@ public final class VsCodeSettingsWriter {
         String frontendPattern = publicFilesUnderWebRootPattern(ModelValues.relativePath(model, ModelValues.webRoot(model)));
         String webInfViewPattern = filesUnderPattern(ModelValues.relativePath(model, ModelValues.webInf(model)), "\\.(" + WEB_INF_VIEW_EXTENSIONS + ")$");
         String configPattern = ".*(WEB-INF[/\\\\]web\\.xml|context\\.xml|\\.(properties|xml|jar))$";
+        String referencedLibraries = referencedLibraries(model);
 
         return "{\n"
+                + "  \"java.project.referencedLibraries\": [\n"
+                + referencedLibraries
+                + "  ],\n"
                 + "  \"filewatcher.isSyncRunEvents\": true,\n"
                 + "  \"filewatcher.autoClearConsole\": false,\n"
                 + "  \"filewatcher.commands\": [\n"
@@ -25,6 +34,31 @@ public final class VsCodeSettingsWriter {
                 + command(configPattern, AntCommand.target(model.projectRoot(), "deploy-exploded") + " && auto-ant reload") + "\n"
                 + "  ]\n"
                 + "}\n";
+    }
+
+    private String referencedLibraries(ProjectModel model) {
+        List<String> libraries = new ArrayList<>();
+        for (Path libraryRoot : ModelValues.libraryRoots(model)) {
+            libraries.add(withJarGlob(ModelValues.relativePath(model, libraryRoot)));
+        }
+        model.tomcatHome().value()
+                .map(path -> path.resolve("lib"))
+                .map(PathUtils::toPortableString)
+                .map(this::withJarGlob)
+                .ifPresent(libraries::add);
+
+        return new LinkedHashSet<>(libraries).stream()
+                .map(JsonUtils::quote)
+                .map(value -> "    " + value)
+                .collect(Collectors.joining(",\n", "", libraries.isEmpty() ? "" : "\n"));
+    }
+
+    private String withJarGlob(String path) {
+        String normalized = path.replace('\\', '/');
+        while (normalized.endsWith("/")) {
+            normalized = normalized.substring(0, normalized.length() - 1);
+        }
+        return normalized + "/**/*.jar";
     }
 
     private String command(String match, String command) {

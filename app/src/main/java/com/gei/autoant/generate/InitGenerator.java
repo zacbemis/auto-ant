@@ -17,10 +17,6 @@ public final class InitGenerator {
     }
 
     public GenerationResult generate(ProjectModel model) throws IOException {
-        return generate(model, false);
-    }
-
-    public GenerationResult generate(ProjectModel model, boolean includeVsCodeFileWatcher) throws IOException {
         List<GeneratedFile> files = new ArrayList<>();
         PropertiesWriter propertiesWriter = new PropertiesWriter();
 
@@ -31,9 +27,7 @@ public final class InitGenerator {
         Path vscodeDir = projectRoot.resolve(".vscode");
         Files.createDirectories(vscodeDir);
         files.add(writeSafely(vscodeDir.resolve("tasks.json"), vscodeDir.resolve("tasks.auto-ant-new.json"), new VsCodeTasksWriter().write()));
-        if (includeVsCodeFileWatcher) {
-            files.add(writeSafely(vscodeDir.resolve("settings.json"), vscodeDir.resolve("settings.auto-ant-new.json"), new VsCodeSettingsWriter().write(model)));
-        }
+        files.add(writeSafely(vscodeDir.resolve("settings.json"), vscodeDir.resolve("settings.auto-ant-new.json"), new VsCodeSettingsWriter().write(model)));
         files.add(new GitignoreWriter().update(projectRoot.resolve(".gitignore")));
 
         return new GenerationResult(files);

@@ -163,10 +163,6 @@ public final class ReloadCommand {
             return deployName.isBlank() ? "ROOT" : deployName;
         }
 
-        private String requiredShared(String key) {
-            return shared(key).orElseThrow(() -> new IllegalArgumentException("Set " + key + " in auto-ant.properties."));
-        }
-
         private String requiredLocal(String key) {
             return local(key).orElseThrow(() -> new IllegalArgumentException("Set " + key + " in auto-ant.local.properties."));
         }

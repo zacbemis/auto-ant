@@ -23,11 +23,11 @@ class InitCommandTest {
     Path tempDir;
 
     @Test
-    void fileWatcherOptionGeneratesSettingsAndWarnsWhenExtensionIsMissing() throws IOException {
+    void initAlwaysGeneratesSettingsAndWarnsWhenExtensionIsMissing() throws IOException {
         createSimpleProject();
         Harness harness = new Harness(tempDir, extensionId -> false);
 
-        int exitCode = harness.command().run(new String[]{"--file-watcher", "--app", "MyApp", "--java", "25"});
+        int exitCode = harness.command().run(new String[]{"--app", "MyApp", "--java", "25"});
 
         assertEquals(0, exitCode);
         assertTrue(Files.exists(tempDir.resolve(".vscode/settings.json")));
@@ -37,11 +37,11 @@ class InitCommandTest {
     }
 
     @Test
-    void fileWatcherOptionReportsWhenExtensionIsInstalled() throws IOException {
+    void initAlwaysReportsWhenFileWatcherExtensionIsInstalled() throws IOException {
         createSimpleProject();
         Harness harness = new Harness(tempDir, extensionId -> true);
 
-        int exitCode = harness.command().run(new String[]{"--file-watcher", "--app", "MyApp", "--java", "25"});
+        int exitCode = harness.command().run(new String[]{"--app", "MyApp", "--java", "25"});
 
         assertEquals(0, exitCode);
         assertTrue(harness.stdout().contains("VS Code File Watcher extension detected"));
@@ -49,7 +49,7 @@ class InitCommandTest {
     }
 
     @Test
-    void initWithoutFileWatcherOptionDoesNotGenerateSettingsOrCheckExtension() throws IOException {
+    void initAlwaysChecksFileWatcherExtension() throws IOException {
         createSimpleProject();
         AtomicBoolean checked = new AtomicBoolean(false);
         Harness harness = new Harness(tempDir, extensionId -> {
@@ -60,9 +60,9 @@ class InitCommandTest {
         int exitCode = harness.command().run(new String[]{"--app", "MyApp", "--java", "25"});
 
         assertEquals(0, exitCode);
-        assertTrue(Files.notExists(tempDir.resolve(".vscode/settings.json")));
-        assertFalse(checked.get());
-        assertFalse(harness.stdout().contains("VS Code File Watcher extension"));
+        assertTrue(Files.exists(tempDir.resolve(".vscode/settings.json")));
+        assertTrue(checked.get());
+        assertTrue(harness.stdout().contains("VS Code File Watcher extension"));
     }
 
     @Test
@@ -74,7 +74,7 @@ class InitCommandTest {
                 "lib.dirs", "web/WEB-INF/lib"
         ).get(label)));
 
-        int exitCode = harness.command().run(new String[]{"--interactive"});
+        int exitCode = harness.command().run(new String[]{});
 
         assertEquals(0, exitCode);
         String sharedProperties = Files.readString(tempDir.resolve("auto-ant.properties"));
@@ -85,15 +85,17 @@ class InitCommandTest {
     }
 
     @Test
-    void initHelpDocumentsInteractiveAndOverrideOptions() {
+    void initHelpDocumentsAlwaysInteractiveSettingsAndOverrideOptions() {
         Harness harness = new Harness(tempDir, extensionId -> true);
 
         int exitCode = harness.command().run(new String[]{"--help"});
 
         assertEquals(0, exitCode);
-        assertTrue(harness.stdout().contains("--interactive"));
+        assertTrue(harness.stdout().contains("Prompts to accept or override"));
+        assertTrue(harness.stdout().contains("VS Code tasks/settings"));
         assertTrue(harness.stdout().contains("--java <release>"));
         assertTrue(harness.stdout().contains("--tomcat <path>"));
+        assertFalse(harness.stdout().contains("--file-watcher"));
     }
 
     private void createSimpleProject() throws IOException {
