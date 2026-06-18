@@ -138,10 +138,29 @@ public final class ReloadCommand {
         }
 
         private Path deployedWebXml() {
-            Path catalinaBase = PathUtils.resolve(projectRoot, local("catalina.base").or(() -> local("tomcat.home"))
-                    .orElseThrow(() -> new IllegalArgumentException("Set catalina.base in auto-ant.local.properties.")));
-            String appName = requiredShared("app.name");
-            return catalinaBase.resolve("webapps").resolve(appName).resolve("WEB-INF").resolve("web.xml").normalize();
+            Path deployDir = local("deploy.dir")
+                    .map(value -> PathUtils.resolve(projectRoot, value))
+                    .orElseGet(() -> {
+                        Path catalinaBase = PathUtils.resolve(projectRoot, local("catalina.base").or(() -> local("tomcat.home"))
+                                .orElseThrow(() -> new IllegalArgumentException("Set deploy.dir or catalina.base in auto-ant.local.properties.")));
+                        String deployName = shared("context.deploy.name")
+                                .orElseGet(() -> contextDeployName(contextPath()));
+                        return catalinaBase.resolve("webapps").resolve(deployName).normalize();
+                    });
+            return deployDir.resolve("WEB-INF").resolve("web.xml").normalize();
+        }
+
+        private String contextDeployName(String contextPath) {
+            String normalized = contextPath.trim();
+            if (normalized.isBlank() || normalized.equals("/")) {
+                return "ROOT";
+            }
+            String deployName = normalized.startsWith("/") ? normalized.substring(1) : normalized;
+            while (deployName.endsWith("/")) {
+                deployName = deployName.substring(0, deployName.length() - 1);
+            }
+            deployName = deployName.replace('/', '#');
+            return deployName.isBlank() ? "ROOT" : deployName;
         }
 
         private String requiredShared(String key) {

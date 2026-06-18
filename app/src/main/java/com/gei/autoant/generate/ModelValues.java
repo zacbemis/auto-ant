@@ -23,6 +23,28 @@ final class ModelValues {
         return model.contextPath().value().orElse("/" + appName(model));
     }
 
+    static String contextDeployName(ProjectModel model) {
+        return contextDeployName(contextPath(model));
+    }
+
+    static String contextDescriptorFileName(ProjectModel model) {
+        return contextDeployName(model) + ".xml";
+    }
+
+    private static String contextDeployName(String contextPath) {
+        String normalized = contextPath.trim();
+        if (normalized.isBlank() || normalized.equals("/")) {
+            return "ROOT";
+        }
+
+        String deployName = normalized.startsWith("/") ? normalized.substring(1) : normalized;
+        while (deployName.endsWith("/")) {
+            deployName = deployName.substring(0, deployName.length() - 1);
+        }
+        deployName = deployName.replace('/', '#');
+        return deployName.isBlank() ? "ROOT" : deployName;
+    }
+
     static int javaRelease(ProjectModel model) {
         return model.javaRelease().value().orElse(8);
     }

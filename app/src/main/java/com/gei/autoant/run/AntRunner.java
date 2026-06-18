@@ -1,6 +1,7 @@
 package com.gei.autoant.run;
 
 import com.gei.autoant.detect.AntDetector;
+import com.gei.autoant.util.AntCommand;
 
 import java.io.IOException;
 import java.io.PrintStream;
@@ -11,7 +12,6 @@ import java.util.Locale;
 
 public final class AntRunner {
     private final PrintStream out;
-    private final PrintStream err;
     private final ProcessRunner processRunner;
 
     public AntRunner(PrintStream out, PrintStream err) {
@@ -20,7 +20,6 @@ public final class AntRunner {
 
     AntRunner(PrintStream out, PrintStream err, ProcessRunner processRunner) {
         this.out = out;
-        this.err = err;
         this.processRunner = processRunner;
     }
 
@@ -52,6 +51,8 @@ public final class AntRunner {
             command.add("/c");
         }
         command.add(executable);
+        command.add("-logger");
+        command.add(AntCommand.DEFAULT_LOGGER_CLASS);
         command.addAll(targets);
         return command;
     }

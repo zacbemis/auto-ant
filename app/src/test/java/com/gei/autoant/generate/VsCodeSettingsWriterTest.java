@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class VsCodeSettingsWriterTest {
@@ -26,21 +27,35 @@ class VsCodeSettingsWriterTest {
         assertTrue(settings.contains("\"filewatcher.commands\""));
         assertTrue(settings.contains("\"event\": \"onFileChange\""));
         assertTrue(settings.contains("\"isAsync\": false"));
-        assertTrue(settings.contains("\"cmd\": \"ant sync-web\""));
+        assertTrue(settings.contains("\"cmd\": \"ant -logger org.apache.tools.ant.DefaultLogger -f"));
+        assertTrue(settings.contains("sync-web\""));
         assertTrue(settings.contains("jsp|jspf|html|htm|css|js|ts"));
+        assertTrue(settings.contains("(?!(WEB-INF|META-INF)"));
         assertTrue(settings.contains("web"));
     }
 
     @Test
-    void writesBackendAndConfigWatcherCommands() throws IOException {
+    void writesSeparateCommandForWebInfViewSaves() throws IOException {
         createProject("web");
         var model = new ProjectDetector().detect(tempDir, NonInteractiveOptions.builder(tempDir).build());
 
         String settings = new VsCodeSettingsWriter().write(model);
 
-        assertTrue(settings.contains("\"cmd\": \"ant compile-hot && auto-ant reload\""));
-        assertTrue(settings.contains("\\\\.java$"));
-        assertTrue(settings.contains("\"cmd\": \"ant deploy-exploded && auto-ant reload\""));
+        assertTrue(settings.contains("WEB-INF"));
+        assertTrue(settings.contains("tag|tagx|tld"));
+        assertTrue(settings.contains("sync-web-inf"));
+    }
+
+    @Test
+    void writesConfigWatcherCommandWithoutBackendJavaWatcher() throws IOException {
+        createProject("web");
+        var model = new ProjectDetector().detect(tempDir, NonInteractiveOptions.builder(tempDir).build());
+
+        String settings = new VsCodeSettingsWriter().write(model);
+
+        assertFalse(settings.contains("compile-hot && auto-ant reload\""));
+        assertFalse(settings.contains("\\\\.java$"));
+        assertTrue(settings.contains("deploy-exploded && auto-ant reload\""));
         assertTrue(settings.contains("WEB-INF"));
         assertTrue(settings.contains("properties|xml|jar"));
     }

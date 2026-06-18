@@ -1,6 +1,7 @@
 package com.gei.autoant.generate;
 
 import com.gei.autoant.model.ProjectModel;
+import com.gei.autoant.util.AntCommand;
 import com.gei.autoant.util.JsonUtils;
 
 import java.util.Arrays;
@@ -8,21 +9,20 @@ import java.util.stream.Collectors;
 
 public final class VsCodeSettingsWriter {
     private static final String FRONTEND_EXTENSIONS = "jsp|jspf|html|htm|css|js|ts|png|jpg|jpeg|gif|svg|webp|ico|woff|woff2";
+    private static final String WEB_INF_VIEW_EXTENSIONS = FRONTEND_EXTENSIONS + "|tag|tagx|tld";
 
     public String write(ProjectModel model) {
-        String frontendPattern = filesUnderPattern(ModelValues.relativePath(model, ModelValues.webRoot(model)), "\\.(" + FRONTEND_EXTENSIONS + ")$");
-        String backendPattern = ModelValues.sourceRoots(model).stream()
-                .map(sourceRoot -> filesUnderPattern(ModelValues.relativePath(model, sourceRoot), "\\.java$"))
-                .collect(Collectors.joining("|"));
+        String frontendPattern = publicFilesUnderWebRootPattern(ModelValues.relativePath(model, ModelValues.webRoot(model)));
+        String webInfViewPattern = filesUnderPattern(ModelValues.relativePath(model, ModelValues.webInf(model)), "\\.(" + WEB_INF_VIEW_EXTENSIONS + ")$");
         String configPattern = ".*(WEB-INF[/\\\\]web\\.xml|context\\.xml|\\.(properties|xml|jar))$";
 
         return "{\n"
                 + "  \"filewatcher.isSyncRunEvents\": true,\n"
                 + "  \"filewatcher.autoClearConsole\": false,\n"
                 + "  \"filewatcher.commands\": [\n"
-                + command(frontendPattern, "ant sync-web") + ",\n"
-                + command(backendPattern, "ant compile-hot && auto-ant reload") + ",\n"
-                + command(configPattern, "ant deploy-exploded && auto-ant reload") + "\n"
+                + command(frontendPattern, AntCommand.target(model.projectRoot(), "sync-web")) + ",\n"
+                + command(webInfViewPattern, AntCommand.target(model.projectRoot(), "sync-web-inf")) + ",\n"
+                + command(configPattern, AntCommand.target(model.projectRoot(), "deploy-exploded") + " && auto-ant reload") + "\n"
                 + "  ]\n"
                 + "}\n";
     }
@@ -38,6 +38,10 @@ public final class VsCodeSettingsWriter {
 
     private String filesUnderPattern(String relativePath, String fileSuffixPattern) {
         return pathPattern(relativePath) + ".*" + fileSuffixPattern;
+    }
+
+    private String publicFilesUnderWebRootPattern(String relativePath) {
+        return pathPattern(relativePath) + "(?!(WEB-INF|META-INF)[/\\\\]).*\\.(" + FRONTEND_EXTENSIONS + ")$";
     }
 
     private String pathPattern(String relativePath) {

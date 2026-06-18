@@ -54,6 +54,47 @@ class ReloadCommandTest {
     }
 
     @Test
+    void touchWebXmlFallbackUsesContextDeployNameWhenDeployDirIsNotConfigured() throws IOException {
+        Files.writeString(tempDir.resolve("auto-ant.properties"), "app.name=FEMSWeb\n"
+                + "context.path=/fems\n"
+                + "context.deploy.name=fems\n"
+                + "reload.strategy=touch-webxml\n");
+        Path catalinaBase = tempDir.resolve("tomcat");
+        writeLocal("catalina.base=" + catalinaBase.toString().replace('\\', '/') + "\n");
+        Path deployedWebXml = catalinaBase.resolve("webapps/fems/WEB-INF/web.xml");
+        Files.createDirectories(deployedWebXml.getParent());
+        Files.writeString(deployedWebXml, "<web-app/>\n");
+        FileTime oldTime = FileTime.from(Instant.parse("2020-01-01T00:00:00Z"));
+        Files.setLastModifiedTime(deployedWebXml, oldTime);
+
+        Harness harness = new Harness(tempDir);
+        int exitCode = harness.command().run(new String[]{});
+
+        assertEquals(0, exitCode);
+        assertTrue(Files.getLastModifiedTime(deployedWebXml).toMillis() > oldTime.toMillis());
+        assertTrue(harness.stdout().contains("Touched"));
+    }
+
+    @Test
+    void touchWebXmlStrategyUsesDeployDirWhenConfigured() throws IOException {
+        writeShared("touch-webxml");
+        Path customDeployDir = tempDir.resolve("custom-deploy");
+        writeLocal("deploy.dir=" + customDeployDir.toString().replace('\\', '/') + "\n");
+        Path deployedWebXml = customDeployDir.resolve("WEB-INF/web.xml");
+        Files.createDirectories(deployedWebXml.getParent());
+        Files.writeString(deployedWebXml, "<web-app/>\n");
+        FileTime oldTime = FileTime.from(Instant.parse("2020-01-01T00:00:00Z"));
+        Files.setLastModifiedTime(deployedWebXml, oldTime);
+
+        Harness harness = new Harness(tempDir);
+        int exitCode = harness.command().run(new String[]{});
+
+        assertEquals(0, exitCode);
+        assertTrue(Files.getLastModifiedTime(deployedWebXml).toMillis() > oldTime.toMillis());
+        assertTrue(harness.stdout().contains("Touched"));
+    }
+
+    @Test
     void managerStrategyCallsTomcatManagerReloadEndpoint() throws IOException {
         writeShared("manager");
         writeLocal("tomcat.manager.url=http://localhost:8080/manager/text\n"
