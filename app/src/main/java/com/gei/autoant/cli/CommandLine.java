@@ -10,7 +10,19 @@ import java.util.Map;
 import java.util.Optional;
 
 public final class CommandLine {
-    private static final Set<String> BOOLEAN_OPTIONS = Set.of("h", "help", "interactive");
+    private static final Set<String> BOOLEAN_OPTIONS = Set.of("h", "help", "interactive", "strict");
+    private static final Set<String> PATH_LIKE_OPTIONS = Set.of(
+            "root",
+            "src",
+            "source",
+            "web",
+            "webinf",
+            "web-inf",
+            "lib",
+            "libs",
+            "tomcat",
+            "ant"
+    );
 
     private final Map<String, List<String>> options;
     private final List<String> positionals;
@@ -37,6 +49,13 @@ public final class CommandLine {
                     rawName = arg.substring(2);
                     if (!BOOLEAN_OPTIONS.contains(normalize(rawName)) && i + 1 < args.length && !args[i + 1].startsWith("-")) {
                         value = args[++i];
+                        if (PATH_LIKE_OPTIONS.contains(normalize(rawName))) {
+                            StringBuilder joined = new StringBuilder(value);
+                            while (i + 1 < args.length && !isOptionBoundary(args[i + 1])) {
+                                joined.append(' ').append(args[++i]);
+                            }
+                            value = joined.toString();
+                        }
                     } else {
                         value = "true";
                     }
@@ -88,5 +107,9 @@ public final class CommandLine {
 
     private static String normalize(String value) {
         return value.toLowerCase(Locale.ROOT).replace('_', '-');
+    }
+
+    private static boolean isOptionBoundary(String value) {
+        return value.startsWith("--") || (value.startsWith("-") && value.length() > 1);
     }
 }

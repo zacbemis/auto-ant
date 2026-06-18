@@ -35,8 +35,12 @@ public final class LibraryDetector {
         }
 
         if (roots.isEmpty()) {
-            return DetectionResult.notDetected("--lib");
+            return DetectionResult.userRequired("--lib", "No library directory was selected. Confirm lib.dirs with --lib or --interactive.");
         }
-        return DetectionResult.confident(List.copyOf(roots), "--lib");
+        return DetectionResult.warning(
+                List.copyOf(roots),
+                "--lib",
+                "Library directories are recommendations. Confirm lib.dirs because legacy repos often have copied or duplicate JAR sets."
+        );
     }
 }

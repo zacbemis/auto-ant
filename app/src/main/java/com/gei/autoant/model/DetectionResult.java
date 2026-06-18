@@ -43,13 +43,29 @@ public final class DetectionResult<T> {
         return new DetectionResult<>(Optional.empty(), DetectionStatus.NOT_DETECTED, warnings, Optional.ofNullable(overrideFlag));
     }
 
+    public static <T> DetectionResult<T> userRequired(String overrideFlag, String warning) {
+        return userRequired(overrideFlag, List.of(warning));
+    }
+
+    public static <T> DetectionResult<T> userRequired(String overrideFlag, List<String> warnings) {
+        return new DetectionResult<>(Optional.empty(), DetectionStatus.USER_REQUIRED, warnings, Optional.ofNullable(overrideFlag));
+    }
+
+    public static <T> DetectionResult<T> userRequired(T value, String overrideFlag, String warning) {
+        return userRequired(value, overrideFlag, List.of(warning));
+    }
+
+    public static <T> DetectionResult<T> userRequired(T value, String overrideFlag, List<String> warnings) {
+        return new DetectionResult<>(Optional.ofNullable(value), DetectionStatus.USER_REQUIRED, warnings, Optional.ofNullable(overrideFlag));
+    }
+
     public DetectionResult<T> withAdditionalWarnings(List<String> additionalWarnings) {
         if (additionalWarnings.isEmpty()) {
             return this;
         }
         List<String> combined = new ArrayList<>(warnings);
         combined.addAll(additionalWarnings);
-        DetectionStatus nextStatus = status == DetectionStatus.NOT_DETECTED || status == DetectionStatus.OVERRIDDEN
+        DetectionStatus nextStatus = status == DetectionStatus.NOT_DETECTED || status == DetectionStatus.USER_REQUIRED || status == DetectionStatus.OVERRIDDEN
                 ? status
                 : DetectionStatus.WARNING;
         return new DetectionResult<>(value, nextStatus, combined, overrideFlag);

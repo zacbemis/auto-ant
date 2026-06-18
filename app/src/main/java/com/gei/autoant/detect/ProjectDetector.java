@@ -9,12 +9,16 @@ import com.gei.autoant.model.SourceRoot;
 import com.gei.autoant.model.WebRoot;
 import com.gei.autoant.prompt.NonInteractiveOptions;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 
 public final class ProjectDetector {
     public ProjectModel detect(Path projectRoot, NonInteractiveOptions options) {
-        Path root = projectRoot.toAbsolutePath().normalize();
+        Path requestedRoot = projectRoot.toAbsolutePath().normalize();
+        RootSelection rootSelection = selectProjectRoot(requestedRoot);
+        Path root = rootSelection.root();
 
         DetectionResult<String> appName = options.appName()
                 .map(value -> DetectionResult.overridden(value, "--app"))
@@ -47,7 +51,7 @@ public final class ProjectDetector {
 
         DetectionResult<Path> tomcatHome = options.tomcatHome()
                 .map(value -> DetectionResult.overridden(value, "--tomcat"))
-                .orElseGet(() -> new TomcatDetector().detect());
+                .orElseGet(() -> DetectionResult.userRequired("--tomcat", "Tomcat home must be selected explicitly. Rerun with --tomcat <path> or use --interactive."));
 
         DetectionResult<Path> antExecutable = options.antExecutable()
                 .map(value -> DetectionResult.overridden(value, "--ant"))
@@ -55,7 +59,7 @@ public final class ProjectDetector {
 
         DetectionResult<Integer> javaRelease = options.javaRelease()
                 .map(value -> DetectionResult.overridden(value, "--java"))
-                .orElseGet(() -> new JavaDetector().detect());
+                .orElseGet(() -> DetectionResult.userRequired("--java", "Java release must be selected explicitly. For Java 1.8, use --java 8."));
 
         DetectionResult<ReloadStrategy> reloadStrategy = options.reloadStrategy()
                 .map(value -> DetectionResult.overridden(value, "--reload-strategy"))
@@ -65,7 +69,10 @@ public final class ProjectDetector {
                 .map(value -> DetectionResult.overridden(value, "--tomcat-manager-url"))
                 .orElseGet(() -> DetectionResult.confident("http://localhost:8080/manager/text", "--tomcat-manager-url"));
 
+        DetectionResult<Path> projectRootResult = rootSelection.result();
+
         List<String> warnings = ProjectModel.collectWarnings(
+                projectRootResult,
                 sourceRoots,
                 webRoot,
                 libraryRoots,
@@ -78,6 +85,7 @@ public final class ProjectDetector {
 
         return new ProjectModel(
                 root,
+                projectRootResult,
                 appName,
                 contextPath,
                 sourceRoots,
@@ -92,6 +100,62 @@ public final class ProjectDetector {
                 tomcatManagerUrl,
                 warnings
         );
+    }
+
+    private RootSelection selectProjectRoot(Path requestedRoot) {
+        if (!Files.isDirectory(requestedRoot)) {
+            return new RootSelection(
+                    requestedRoot,
+                    DetectionResult.userRequired(requestedRoot, "--root", "Project root folder does not exist. Choose the folder that contains the web app source root and web root.")
+            );
+        }
+
+        DetectionResult<List<SourceRoot>> sourceRoots = new SourceRootDetector().detect(requestedRoot);
+        DetectionResult<WebRoot> webRoot = new WebRootDetector().detect(requestedRoot);
+        boolean sourceDetected = sourceRoots.value().isPresent() && !sourceRoots.value().get().isEmpty();
+        boolean webDetected = webRoot.value().isPresent();
+        if (sourceDetected && webDetected) {
+            return new RootSelection(requestedRoot, DetectionResult.confident(requestedRoot, "--root"));
+        }
+
+        List<Path> childAppRoots = childAppRoots(requestedRoot);
+        List<String> warnings = new ArrayList<>();
+        if (childAppRoots.size() == 1) {
+            Path childRoot = childAppRoots.get(0);
+            warnings.add("Selected folder appears to be a parent repository, not the web app root.");
+            warnings.add("Using child web app root: " + childRoot.getFileName());
+            warnings.add("If this is not correct, rerun with --root <path> or use --interactive.");
+            return new RootSelection(childRoot, DetectionResult.warning(childRoot, "--root", warnings));
+        }
+
+        if (!sourceDetected && !webDetected) {
+            warnings.add("No recognizable legacy Java web app layout was found at this folder.");
+            if (!childAppRoots.isEmpty()) {
+                warnings.add("Possible app roots below this folder: " + childAppRoots.stream().map(path -> path.getFileName().toString()).collect(java.util.stream.Collectors.joining(", ")));
+            }
+            warnings.add("Choose the folder that directly contains source and web directories, for example FEMSWeb rather than its parent repository folder.");
+            return new RootSelection(requestedRoot, DetectionResult.userRequired(requestedRoot, "--root", warnings));
+        }
+
+        warnings.add("Project root looks incomplete: " + (sourceDetected ? "source root detected" : "source root missing")
+                + ", " + (webDetected ? "web root detected" : "web root missing") + ".");
+        return new RootSelection(requestedRoot, DetectionResult.warning(requestedRoot, "--root", warnings));
+    }
+
+    private List<Path> childAppRoots(Path root) {
+        if (!Files.isDirectory(root)) {
+            return List.of();
+        }
+        try (var children = Files.list(root)) {
+            return children
+                    .filter(Files::isDirectory)
+                    .filter(child -> new SourceRootDetector().detect(child).value().isPresent()
+                            && new WebRootDetector().detect(child).value().isPresent())
+                    .limit(10)
+                    .toList();
+        } catch (java.io.IOException ex) {
+            return List.of();
+        }
     }
 
     private String inferAppName(Path root) {
@@ -109,5 +173,8 @@ public final class ProjectDetector {
             case BOTH -> DetectionResult.warning("Tomcat version unclear", null, "Mixed servlet namespaces make Tomcat recommendation ambiguous.");
             case UNKNOWN -> DetectionResult.notDetected(null);
         };
+    }
+
+    private record RootSelection(Path root, DetectionResult<Path> result) {
     }
 }

@@ -28,4 +28,19 @@ class CommandLineTest {
         assertTrue(commandLine.hasOption("tomcat-manager-url"));
         assertEquals("http://localhost:8080/manager/text", commandLine.option("tomcat-manager-url").orElseThrow());
     }
+
+    @Test
+    void rejoinsPathLikeOptionsSplitByGradleArgs() {
+        CommandLine commandLine = CommandLine.parse(new String[]{
+                "--root",
+                "C:\\dev\\git\\FOC-FEMS",
+                "-",
+                "Copy\\FEMSWeb",
+                "--java",
+                "8"
+        });
+
+        assertEquals("C:\\dev\\git\\FOC-FEMS - Copy\\FEMSWeb", commandLine.option("root").orElseThrow());
+        assertEquals("8", commandLine.option("java").orElseThrow());
+    }
 }

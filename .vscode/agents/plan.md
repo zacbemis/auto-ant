@@ -316,6 +316,55 @@ auto-ant doctor ^
 
 This matters for future automation and tests.
 
+
+### Real legacy repo lessons from `FOC-FEMS - Copy/FEMSWeb`
+
+The first real target repo tested exposed several rules that should be treated as core doctor behavior:
+
+```text
+FOC-FEMS - Copy/
+  FEMSWeb/
+    src/
+      java/
+      conf/
+      META-INF/
+    web/
+      WEB-INF/
+        web.xml
+        lib/
+```
+
+Required adjustments:
+
+```text
+Project root
+  The selected root must be the actual web app folder, not just the parent Git repo.
+  If source and web roots are both missing, doctor should say the selected folder does not look like a web app root.
+  If child directories look like app roots, doctor should suggest them, for example FEMSWeb.
+
+Paths with spaces
+  Gradle --args and shells can split paths such as "FOC-FEMS - Copy/FEMSWeb".
+  CLI parsing should be tolerant for path-like options and rejoin split path tokens when possible.
+  Documentation should still recommend forward-slash absolute paths in quotes.
+
+Source roots
+  NetBeans-style src/java must be preferred over parent src when both exist.
+  src can contain conf and META-INF, so treating src as the Java source root is wrong when src/java exists.
+
+Java release
+  Do not silently use the runtime Java version as the project Java version.
+  Legacy apps may run/build on Java 8 while auto-ant itself runs on Java 21.
+  java.release should be an explicit user choice via --java or --interactive.
+
+Tomcat home
+  Tomcat home should be an explicit user choice via --tomcat or --interactive.
+  Doctor may recommend a Tomcat major version from servlet namespace, but should not silently choose a local Tomcat path.
+
+Libraries
+  Detected lib folders are recommendations, not final decisions.
+  Doctor should ask/require the user to confirm lib.dirs because legacy repos often include duplicated, nested, or copied JAR sets.
+```
+
 ## 4.4 Detection rules
 
 Source directory candidates:
@@ -327,6 +376,8 @@ src
 source
 Source Packages
 ```
+
+If both `src` and `src/java` exist, prefer `src/java`.
 
 Web root candidates:
 
@@ -357,6 +408,8 @@ WebContent/WEB-INF/lib
 src/main/webapp/WEB-INF/lib
 ```
 
+Library detection should recommend likely values, but user input should decide the final `lib.dirs`.
+
 Servlet namespace scan:
 
 ```text
@@ -374,6 +427,16 @@ CATALINA_BASE
 TOMCAT_HOME
 common known local paths
 manual input
+```
+
+For production-quality behavior, Tomcat home must be explicitly confirmed by the user. Environment/path detection can be shown as a suggestion, but `init` should not treat it as final unless provided by `--tomcat` or accepted interactively.
+
+Java release detection:
+
+```text
+runtime Java can be displayed as tool/runtime info
+project java.release must be explicit user input
+legacy Java 8 apps should use --java 8
 ```
 
 Ant detection:

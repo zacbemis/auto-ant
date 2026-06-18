@@ -28,6 +28,8 @@ public final class SourceRootDetector {
             }
         }
 
+        roots = removeParentRootsWhenSpecificChildExists(roots);
+
         if (roots.isEmpty()) {
             return DetectionResult.notDetected("--src", List.of("No Java source root candidate was found."));
         }
@@ -39,5 +41,18 @@ public final class SourceRootDetector {
                 "--src",
                 "Multiple Java source roots were detected. Confirm src.dirs before generating build files."
         );
+    }
+
+    private List<SourceRoot> removeParentRootsWhenSpecificChildExists(List<SourceRoot> roots) {
+        return roots.stream()
+                .filter(candidate -> roots.stream().noneMatch(other -> isMoreSpecificChild(candidate.path(), other.path())))
+                .toList();
+    }
+
+    private boolean isMoreSpecificChild(Path candidate, Path other) {
+        return !candidate.equals(other)
+                && other.startsWith(candidate)
+                && candidate.getFileName() != null
+                && candidate.getFileName().toString().equalsIgnoreCase("src");
     }
 }

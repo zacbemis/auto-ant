@@ -38,7 +38,7 @@ public final class DoctorCommand {
                 model = new ProjectDetector().detect(options.projectRoot(), options);
             }
             printDoctor(model);
-            return model.hasBlockingMissingValues() ? 1 : 0;
+            return commandLine.hasOption("strict") && model.hasBlockingMissingValues() ? 1 : 0;
         } catch (IllegalArgumentException ex) {
             context.err().println("doctor: " + ex.getMessage());
             return 2;
@@ -138,7 +138,7 @@ public final class DoctorCommand {
         context.out().println("auto-ant doctor");
         context.out().println();
 
-        printField("Project root", DetectionResult.confident(model.projectRoot(), "--root"), path -> PathUtils.toPortableString(path.toAbsolutePath().normalize()));
+        printField("Project root", model.projectRootResult(), path -> PathUtils.toPortableString(path.toAbsolutePath().normalize()));
         printField("App name", model.appName(), Function.identity());
         printField("Context path", model.contextPath(), Function.identity());
         printField("Java source roots", model.sourceRoots(), roots -> roots.stream()
@@ -177,6 +177,9 @@ public final class DoctorCommand {
         }
         context.out().println("  Status: " + result.status().displayName());
         result.overrideFlag().ifPresent(flag -> context.out().println("  User override available: " + flag));
+        if (result.status() == com.gei.autoant.model.DetectionStatus.USER_REQUIRED) {
+            result.overrideFlag().ifPresent(flag -> context.out().println("  Action required: rerun with " + flag + " or use --interactive."));
+        }
         for (String warning : result.warnings()) {
             context.out().println("  Warning: " + warning);
         }
@@ -191,6 +194,7 @@ public final class DoctorCommand {
         context.out().println();
         context.out().println("Options:");
         context.out().println("  --interactive             Prompt to accept or override detected values.");
+        context.out().println("  --strict                  Exit non-zero when required user choices are missing.");
         context.out().println("  --root <path>             Project root.");
         context.out().println("  --app <name>              Application name.");
         context.out().println("  --context <path>          Context path.");

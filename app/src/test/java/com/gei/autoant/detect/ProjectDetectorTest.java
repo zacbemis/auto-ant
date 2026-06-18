@@ -50,6 +50,59 @@ class ProjectDetectorTest {
     }
 
     @Test
+    void prefersNetBeansStyleSrcJavaOverParentSrc() throws IOException {
+        Files.createDirectories(tempDir.resolve("src/java/com/example"));
+        Files.createDirectories(tempDir.resolve("src/conf"));
+        Files.createDirectories(tempDir.resolve("web/WEB-INF"));
+        Files.writeString(tempDir.resolve("web/WEB-INF/web.xml"), "<web-app/>\n");
+
+        var model = new ProjectDetector().detect(tempDir, NonInteractiveOptions.builder(tempDir).build());
+
+        assertEquals(1, model.sourceRoots().value().orElseThrow().size());
+        assertEquals(tempDir.resolve("src/java").normalize(), model.sourceRoots().value().orElseThrow().get(0).path());
+    }
+
+    @Test
+    void requiresUserChoiceForJavaTomcatAndLibraries() throws IOException {
+        Files.createDirectories(tempDir.resolve("src/java"));
+        Files.createDirectories(tempDir.resolve("web/WEB-INF"));
+        Files.writeString(tempDir.resolve("web/WEB-INF/web.xml"), "<web-app/>\n");
+
+        var model = new ProjectDetector().detect(tempDir, NonInteractiveOptions.builder(tempDir).build());
+
+        assertEquals(DetectionStatus.USER_REQUIRED, model.javaRelease().status());
+        assertEquals(DetectionStatus.USER_REQUIRED, model.tomcatHome().status());
+        assertEquals(DetectionStatus.USER_REQUIRED, model.libraryRoots().status());
+    }
+
+    @Test
+    void autoFocusesSingleChildWebAppRootWhenParentFolderIsSelected() throws IOException {
+        Path appRoot = tempDir.resolve("ManagementActionTrackingWeb");
+        createChildWebApp(appRoot);
+
+        var model = new ProjectDetector().detect(tempDir, NonInteractiveOptions.builder(tempDir).build());
+
+        assertEquals(DetectionStatus.WARNING, model.projectRootResult().status());
+        assertEquals(appRoot.normalize(), model.projectRoot());
+        assertEquals("ManagementActionTrackingWeb", model.appName().value().orElseThrow());
+        assertEquals(appRoot.resolve("src/java").normalize(), model.sourceRoots().value().orElseThrow().get(0).path());
+        assertEquals(appRoot.resolve("web").normalize(), model.webRoot().value().orElseThrow().path());
+        assertTrue(model.projectRootResult().warnings().stream().anyMatch(warning -> warning.contains("ManagementActionTrackingWeb")));
+    }
+
+    @Test
+    void requiresRootChoiceWhenParentHasMultipleChildWebApps() throws IOException {
+        createChildWebApp(tempDir.resolve("AppOne"));
+        createChildWebApp(tempDir.resolve("AppTwo"));
+
+        var model = new ProjectDetector().detect(tempDir, NonInteractiveOptions.builder(tempDir).build());
+
+        assertEquals(DetectionStatus.USER_REQUIRED, model.projectRootResult().status());
+        assertEquals(tempDir.toAbsolutePath().normalize(), model.projectRoot());
+        assertTrue(model.projectRootResult().warnings().stream().anyMatch(warning -> warning.contains("AppOne") && warning.contains("AppTwo")));
+    }
+
+    @Test
     void warnsWhenWebXmlIsMissing() throws IOException {
         Files.createDirectories(tempDir.resolve("src"));
         Files.createDirectories(tempDir.resolve("web"));
@@ -95,5 +148,11 @@ class ProjectDetectorTest {
 
         assertEquals(ServletNamespace.JAKARTA, model.servletNamespace().value().orElseThrow());
         assertEquals("Tomcat 10/11", model.recommendedTomcat().value().orElseThrow());
+    }
+
+    private void createChildWebApp(Path appRoot) throws IOException {
+        Files.createDirectories(appRoot.resolve("src/java"));
+        Files.createDirectories(appRoot.resolve("web/WEB-INF/lib"));
+        Files.writeString(appRoot.resolve("web/WEB-INF/web.xml"), "<web-app/>\n");
     }
 }

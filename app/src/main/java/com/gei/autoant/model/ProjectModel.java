@@ -8,6 +8,7 @@ import java.util.Objects;
 
 public final class ProjectModel {
     private final Path projectRoot;
+    private final DetectionResult<Path> projectRootResult;
     private final DetectionResult<String> appName;
     private final DetectionResult<String> contextPath;
     private final DetectionResult<List<SourceRoot>> sourceRoots;
@@ -24,6 +25,7 @@ public final class ProjectModel {
 
     public ProjectModel(
             Path projectRoot,
+            DetectionResult<Path> projectRootResult,
             DetectionResult<String> appName,
             DetectionResult<String> contextPath,
             DetectionResult<List<SourceRoot>> sourceRoots,
@@ -39,6 +41,7 @@ public final class ProjectModel {
             List<String> warnings
     ) {
         this.projectRoot = Objects.requireNonNull(projectRoot, "projectRoot");
+        this.projectRootResult = Objects.requireNonNull(projectRootResult, "projectRootResult");
         this.appName = Objects.requireNonNull(appName, "appName");
         this.contextPath = Objects.requireNonNull(contextPath, "contextPath");
         this.sourceRoots = Objects.requireNonNull(sourceRoots, "sourceRoots");
@@ -56,6 +59,10 @@ public final class ProjectModel {
 
     public Path projectRoot() {
         return projectRoot;
+    }
+
+    public DetectionResult<Path> projectRootResult() {
+        return projectRootResult;
     }
 
     public DetectionResult<String> appName() {
@@ -111,7 +118,12 @@ public final class ProjectModel {
     }
 
     public boolean hasBlockingMissingValues() {
-        return false;
+        return projectRootResult.status() == DetectionStatus.USER_REQUIRED
+                || javaRelease.status() == DetectionStatus.USER_REQUIRED
+                || tomcatHome.status() == DetectionStatus.USER_REQUIRED
+                || sourceRoots.status() == DetectionStatus.USER_REQUIRED
+                || webRoot.status() == DetectionStatus.USER_REQUIRED
+                || libraryRoots.status() == DetectionStatus.USER_REQUIRED;
     }
 
     public static List<String> collectWarnings(DetectionResult<?>... results) {
