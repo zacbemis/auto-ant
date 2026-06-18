@@ -1,6 +1,7 @@
 package com.gei.autoant.cli;
 
 import com.gei.autoant.prompt.PromptService;
+import com.gei.autoant.run.CommandResult;
 import com.gei.autoant.vscode.VsCodeExtensionChecker;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -10,6 +11,8 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -34,6 +37,8 @@ class InitCommandTest {
         assertTrue(harness.stdout().contains("VS Code File Watcher extension not detected"));
         assertTrue(harness.stdout().contains(VsCodeExtensionChecker.FILE_WATCHER_EXTENSION_ID));
         assertTrue(harness.stdout().contains("code --install-extension " + VsCodeExtensionChecker.FILE_WATCHER_EXTENSION_ID));
+        assertEquals(List.of("deploy-exploded"), harness.deployedTargets());
+        assertEquals(List.of(tempDir.toAbsolutePath().normalize()), harness.deployedRoots());
     }
 
     @Test
@@ -46,6 +51,7 @@ class InitCommandTest {
         assertEquals(0, exitCode);
         assertTrue(harness.stdout().contains("VS Code File Watcher extension detected"));
         assertFalse(harness.stdout().contains("code --install-extension"));
+        assertTrue(harness.stdout().contains("Running initial deploy-exploded"));
     }
 
     @Test
@@ -85,6 +91,18 @@ class InitCommandTest {
     }
 
     @Test
+    void initReturnsDeployExplodedFailureCode() throws IOException {
+        createSimpleProject();
+        Harness harness = new Harness(tempDir, extensionId -> true, (label, detectedValue) -> Optional.empty(), 7);
+
+        int exitCode = harness.command().run(new String[]{"--app", "MyApp", "--java", "25"});
+
+        assertEquals(7, exitCode);
+        assertEquals(List.of("deploy-exploded"), harness.deployedTargets());
+        assertTrue(harness.stderr().contains("deploy-exploded failed with exit code 7"));
+    }
+
+    @Test
     void initHelpDocumentsAlwaysInteractiveSettingsAndOverrideOptions() {
         Harness harness = new Harness(tempDir, extensionId -> true);
 
@@ -93,6 +111,7 @@ class InitCommandTest {
         assertEquals(0, exitCode);
         assertTrue(harness.stdout().contains("Prompts to accept or override"));
         assertTrue(harness.stdout().contains("VS Code tasks/settings"));
+        assertTrue(harness.stdout().contains("deploy-exploded"));
         assertTrue(harness.stdout().contains("--java <release>"));
         assertTrue(harness.stdout().contains("--tomcat <path>"));
         assertFalse(harness.stdout().contains("--file-watcher"));
@@ -111,6 +130,8 @@ class InitCommandTest {
     private static final class Harness {
         private final ByteArrayOutputStream out = new ByteArrayOutputStream();
         private final ByteArrayOutputStream err = new ByteArrayOutputStream();
+        private final List<String> deployedTargets = new ArrayList<>();
+        private final List<Path> deployedRoots = new ArrayList<>();
         private final InitCommand command;
 
         private Harness(Path projectRoot, VsCodeExtensionChecker extensionChecker) {
@@ -118,8 +139,16 @@ class InitCommandTest {
         }
 
         private Harness(Path projectRoot, VsCodeExtensionChecker extensionChecker, PromptService promptService) {
+            this(projectRoot, extensionChecker, promptService, 0);
+        }
+
+        private Harness(Path projectRoot, VsCodeExtensionChecker extensionChecker, PromptService promptService, int deployExitCode) {
             CommandContext context = new CommandContext(projectRoot, new PrintStream(out), new PrintStream(err), promptService);
-            this.command = new InitCommand(context, extensionChecker);
+            this.command = new InitCommand(context, extensionChecker, (deployRoot, target) -> {
+                deployedRoots.add(deployRoot.toAbsolutePath().normalize());
+                deployedTargets.add(target);
+                return new CommandResult(deployExitCode);
+            });
         }
 
         private InitCommand command() {
@@ -128,6 +157,18 @@ class InitCommandTest {
 
         private String stdout() {
             return out.toString();
+        }
+
+        private String stderr() {
+            return err.toString();
+        }
+
+        private List<String> deployedTargets() {
+            return deployedTargets;
+        }
+
+        private List<Path> deployedRoots() {
+            return deployedRoots;
         }
     }
 }

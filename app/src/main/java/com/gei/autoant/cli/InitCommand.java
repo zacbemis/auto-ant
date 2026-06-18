@@ -6,22 +6,31 @@ import com.gei.autoant.generate.GenerationResult;
 import com.gei.autoant.generate.InitGenerator;
 import com.gei.autoant.model.ProjectModel;
 import com.gei.autoant.prompt.NonInteractiveOptions;
+import com.gei.autoant.run.AntRunner;
+import com.gei.autoant.run.CommandResult;
 import com.gei.autoant.vscode.CodeCliVsCodeExtensionChecker;
 import com.gei.autoant.vscode.VsCodeExtensionChecker;
 
 import java.io.IOException;
+import java.nio.file.Path;
 
 public final class InitCommand {
     private final CommandContext context;
     private final VsCodeExtensionChecker extensionChecker;
+    private final AntTargetRunner antTargetRunner;
 
     public InitCommand(CommandContext context) {
         this(context, new CodeCliVsCodeExtensionChecker());
     }
 
     InitCommand(CommandContext context, VsCodeExtensionChecker extensionChecker) {
+        this(context, extensionChecker, new AntRunner(context.out(), context.err())::runTarget);
+    }
+
+    InitCommand(CommandContext context, VsCodeExtensionChecker extensionChecker, AntTargetRunner antTargetRunner) {
         this.context = context;
         this.extensionChecker = extensionChecker;
+        this.antTargetRunner = antTargetRunner;
     }
 
     public int run(String[] args) {
@@ -51,7 +60,7 @@ public final class InitCommand {
                     context.out().println("  - " + warning);
                 }
             }
-            return 0;
+            return runInitialDeploy(model);
         } catch (IllegalArgumentException ex) {
             context.err().println("init: " + ex.getMessage());
             return 2;
@@ -65,7 +74,7 @@ public final class InitCommand {
         context.out().println("Usage: auto-ant init [options]");
         context.out().println();
         context.out().println("Prompts to accept or override detected values, then generates build.xml, auto-ant properties,");
-        context.out().println("VS Code tasks/settings, and safe .gitignore entries.");
+        context.out().println("VS Code tasks/settings, safe .gitignore entries, and runs deploy-exploded.");
         context.out().println("The VS Code settings include File Watcher commands and Java library paths.");
         context.out().println("Existing generated targets are never overwritten destructively.");
         context.out().println();
@@ -94,5 +103,29 @@ public final class InitCommand {
         context.out().println("Install it before relying on the generated .vscode/settings.json watcher integration:");
         context.out().println("  code --install-extension " + VsCodeExtensionChecker.FILE_WATCHER_EXTENSION_ID);
         context.out().println("  https://github.com/appulate/vscode-file-watcher");
+    }
+
+    private int runInitialDeploy(ProjectModel model) {
+        context.out().println();
+        context.out().println("Running initial deploy-exploded...");
+        try {
+            CommandResult result = antTargetRunner.runTarget(model.projectRoot(), "deploy-exploded");
+            if (result.exitCode() != 0) {
+                context.err().println("init: deploy-exploded failed with exit code " + result.exitCode());
+            }
+            return result.exitCode();
+        } catch (IOException ex) {
+            context.err().println("init: failed to run deploy-exploded: " + ex.getMessage());
+            return 1;
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            context.err().println("init: deploy-exploded interrupted");
+            return 130;
+        }
+    }
+
+    @FunctionalInterface
+    interface AntTargetRunner {
+        CommandResult runTarget(Path projectRoot, String target) throws IOException, InterruptedException;
     }
 }
