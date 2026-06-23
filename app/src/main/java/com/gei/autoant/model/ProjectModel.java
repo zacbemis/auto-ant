@@ -19,6 +19,7 @@ public final class ProjectModel {
     private final DetectionResult<Path> tomcatHome;
     private final DetectionResult<Path> antExecutable;
     private final DetectionResult<Integer> javaRelease;
+    private final DetectionResult<Path> jdkHome;
     private final DetectionResult<ReloadStrategy> reloadStrategy;
     private final DetectionResult<String> tomcatManagerUrl;
     private final List<String> warnings;
@@ -36,6 +37,7 @@ public final class ProjectModel {
             DetectionResult<Path> tomcatHome,
             DetectionResult<Path> antExecutable,
             DetectionResult<Integer> javaRelease,
+            DetectionResult<Path> jdkHome,
             DetectionResult<ReloadStrategy> reloadStrategy,
             DetectionResult<String> tomcatManagerUrl,
             List<String> warnings
@@ -52,6 +54,7 @@ public final class ProjectModel {
         this.tomcatHome = Objects.requireNonNull(tomcatHome, "tomcatHome");
         this.antExecutable = Objects.requireNonNull(antExecutable, "antExecutable");
         this.javaRelease = Objects.requireNonNull(javaRelease, "javaRelease");
+        this.jdkHome = Objects.requireNonNull(jdkHome, "jdkHome");
         this.reloadStrategy = Objects.requireNonNull(reloadStrategy, "reloadStrategy");
         this.tomcatManagerUrl = Objects.requireNonNull(tomcatManagerUrl, "tomcatManagerUrl");
         this.warnings = List.copyOf(warnings);
@@ -105,6 +108,10 @@ public final class ProjectModel {
         return javaRelease;
     }
 
+    public DetectionResult<Path> jdkHome() {
+        return jdkHome;
+    }
+
     public DetectionResult<ReloadStrategy> reloadStrategy() {
         return reloadStrategy;
     }
@@ -120,6 +127,7 @@ public final class ProjectModel {
     public boolean hasBlockingMissingValues() {
         return projectRootResult.status() == DetectionStatus.USER_REQUIRED
                 || javaRelease.status() == DetectionStatus.USER_REQUIRED
+                || jdkHome.status() == DetectionStatus.USER_REQUIRED
                 || tomcatHome.status() == DetectionStatus.USER_REQUIRED
                 || sourceRoots.status() == DetectionStatus.USER_REQUIRED
                 || webRoot.status() == DetectionStatus.USER_REQUIRED

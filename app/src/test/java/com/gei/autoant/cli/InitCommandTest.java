@@ -77,6 +77,7 @@ class InitCommandTest {
         createSimpleProject();
         Harness harness = new Harness(tempDir, extensionId -> true, (label, detectedValue) -> Optional.ofNullable(Map.of(
                 "java.release", "17",
+                "jdk.home", "jdk",
                 "tomcat.home", "tomcat",
                 "lib.dirs", "web/WEB-INF/lib"
         ).get(label)));
@@ -86,9 +87,12 @@ class InitCommandTest {
         assertEquals(0, exitCode);
         String sharedProperties = Files.readString(tempDir.resolve("auto-ant.properties"));
         String localProperties = Files.readString(tempDir.resolve("auto-ant.local.properties"));
+        String settingsJson = Files.readString(tempDir.resolve(".vscode/settings.json"));
         assertTrue(sharedProperties.contains("java.release=17"));
         assertTrue(sharedProperties.contains("lib.dirs=web/WEB-INF/lib"));
         assertTrue(localProperties.contains("tomcat.home=" + portable(tempDir.resolve("tomcat").toAbsolutePath().normalize())));
+        assertTrue(settingsJson.contains("\"java.jdt.ls.java.home\": \"" + portable(tempDir.resolve("jdk").toAbsolutePath().normalize()) + "\""));
+        assertTrue(settingsJson.contains("\"JAVA_HOME\": \"" + portable(tempDir.resolve("jdk").toAbsolutePath().normalize()) + "\""));
     }
 
     @Test
@@ -121,7 +125,7 @@ class InitCommandTest {
     }
 
     private String[] initArgs() {
-        return new String[]{"--app", "MyApp", "--java", "25", "--tomcat", tempDir.resolve("tomcat").toString()};
+        return new String[]{"--app", "MyApp", "--java", "25", "--jdk", tempDir.resolve("jdk").toString(), "--tomcat", tempDir.resolve("tomcat").toString()};
     }
 
     @Test
@@ -135,6 +139,7 @@ class InitCommandTest {
         assertTrue(harness.stdout().contains("VS Code tasks/settings"));
         assertTrue(harness.stdout().contains("deploy-exploded"));
         assertTrue(harness.stdout().contains("--java <release>"));
+        assertTrue(harness.stdout().contains("--jdk <path>"));
         assertTrue(harness.stdout().contains("--tomcat <path>"));
         assertFalse(harness.stdout().contains("--file-watcher"));
     }

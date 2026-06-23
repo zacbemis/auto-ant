@@ -15,6 +15,7 @@ public final class NonInteractiveOptions {
     private final Optional<String> appName;
     private final Optional<String> contextPath;
     private final Optional<Integer> javaRelease;
+    private final Optional<Path> jdkHome;
     private final Optional<Path> tomcatHome;
     private final Optional<Path> antExecutable;
     private final List<Path> sourceRoots;
@@ -30,6 +31,7 @@ public final class NonInteractiveOptions {
         this.appName = builder.appName;
         this.contextPath = builder.contextPath;
         this.javaRelease = builder.javaRelease;
+        this.jdkHome = builder.jdkHome;
         this.tomcatHome = builder.tomcatHome;
         this.antExecutable = builder.antExecutable;
         this.sourceRoots = List.copyOf(builder.sourceRoots);
@@ -51,6 +53,8 @@ public final class NonInteractiveOptions {
         commandLine.option("context").ifPresent(builder::contextPath);
         commandLine.option("context-path").ifPresent(builder::contextPath);
         commandLine.option("java").map(NonInteractiveOptions::parseInteger).ifPresent(builder::javaRelease);
+        commandLine.option("jdk").map(value -> PathUtils.resolve(root, value)).ifPresent(builder::jdkHome);
+        commandLine.option("jdk-home").map(value -> PathUtils.resolve(root, value)).ifPresent(builder::jdkHome);
         commandLine.option("tomcat").map(value -> PathUtils.resolve(root, value)).ifPresent(builder::tomcatHome);
         commandLine.option("ant").map(value -> PathUtils.resolve(root, value)).ifPresent(builder::antExecutable);
         commandLine.option("web").map(value -> PathUtils.resolve(root, value)).ifPresent(builder::webRoot);
@@ -99,6 +103,7 @@ public final class NonInteractiveOptions {
                 .appName(appName)
                 .contextPath(contextPath)
                 .javaRelease(javaRelease)
+                .jdkHome(jdkHome)
                 .tomcatHome(tomcatHome)
                 .antExecutable(antExecutable)
                 .sourceRoots(sourceRoots)
@@ -127,6 +132,10 @@ public final class NonInteractiveOptions {
 
     public Optional<Integer> javaRelease() {
         return javaRelease;
+    }
+
+    public Optional<Path> jdkHome() {
+        return jdkHome;
     }
 
     public Optional<Path> tomcatHome() {
@@ -167,6 +176,7 @@ public final class NonInteractiveOptions {
         private Optional<String> appName = Optional.empty();
         private Optional<String> contextPath = Optional.empty();
         private Optional<Integer> javaRelease = Optional.empty();
+        private Optional<Path> jdkHome = Optional.empty();
         private Optional<Path> tomcatHome = Optional.empty();
         private Optional<Path> antExecutable = Optional.empty();
         private List<Path> sourceRoots = List.of();
@@ -225,6 +235,20 @@ public final class NonInteractiveOptions {
 
         public Optional<Integer> javaRelease() {
             return javaRelease;
+        }
+
+        public Builder jdkHome(Path jdkHome) {
+            this.jdkHome = Optional.ofNullable(jdkHome).map(Path::normalize);
+            return this;
+        }
+
+        public Builder jdkHome(Optional<Path> jdkHome) {
+            this.jdkHome = jdkHome.map(Path::normalize);
+            return this;
+        }
+
+        public Optional<Path> jdkHome() {
+            return jdkHome;
         }
 
         public Builder tomcatHome(Path tomcatHome) {

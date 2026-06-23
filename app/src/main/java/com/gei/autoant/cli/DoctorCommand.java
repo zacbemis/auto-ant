@@ -63,6 +63,7 @@ public final class DoctorCommand {
         printField("Tomcat home", model.tomcatHome(), path -> PathUtils.display(model.projectRoot(), path));
         printField("Ant", model.antExecutable(), path -> "Found: " + PathUtils.toPortableString(path));
         printField("Java", model.javaRelease(), String::valueOf);
+        printField("JDK home", model.jdkHome(), path -> PathUtils.display(model.projectRoot(), path));
         printField("Reload strategy", model.reloadStrategy(), ReloadStrategy::propertyValue);
         printField("Tomcat manager URL", model.tomcatManagerUrl(), Function.identity());
 
@@ -112,6 +113,7 @@ public final class DoctorCommand {
         context.out().println("  --tomcat <path>           Tomcat home.");
         context.out().println("  --ant <path>              Ant executable.");
         context.out().println("  --java <release>          Java release.");
+        context.out().println("  --jdk <path>              JDK home directory used by generated VS Code settings.");
         context.out().println("  --reload-strategy <name>  manager, touch-webxml, or none.");
         context.out().println("  --tomcat-manager-url <url>");
     }

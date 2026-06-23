@@ -61,9 +61,13 @@ public final class ProjectDetector {
                 .map(value -> DetectionResult.overridden(value, "--java"))
                 .orElseGet(() -> DetectionResult.userRequired("--java", "Java release must be selected explicitly. For Java 1.8, use --java 8."));
 
+        DetectionResult<Path> jdkHome = options.jdkHome()
+                .map(value -> DetectionResult.overridden(value, "--jdk"))
+                .orElseGet(() -> DetectionResult.userRequired("--jdk", "JDK home must be selected explicitly. Rerun with --jdk <path> or provide it when prompted."));
+
         DetectionResult<ReloadStrategy> reloadStrategy = options.reloadStrategy()
                 .map(value -> DetectionResult.overridden(value, "--reload-strategy"))
-                .orElseGet(() -> DetectionResult.confident(ReloadStrategy.MANAGER, "--reload-strategy"));
+                .orElseGet(() -> DetectionResult.confident(ReloadStrategy.TOUCH_WEBXML, "--reload-strategy"));
 
         DetectionResult<String> tomcatManagerUrl = options.tomcatManagerUrl()
                 .map(value -> DetectionResult.overridden(value, "--tomcat-manager-url"))
@@ -80,7 +84,8 @@ public final class ProjectDetector {
                 recommendedTomcat,
                 tomcatHome,
                 antExecutable,
-                javaRelease
+                javaRelease,
+                jdkHome
         );
 
         return new ProjectModel(
@@ -96,6 +101,7 @@ public final class ProjectDetector {
                 tomcatHome,
                 antExecutable,
                 javaRelease,
+                jdkHome,
                 reloadStrategy,
                 tomcatManagerUrl,
                 warnings

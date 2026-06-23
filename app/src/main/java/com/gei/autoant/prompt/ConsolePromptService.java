@@ -31,6 +31,35 @@ public final class ConsolePromptService implements PromptService {
         return readLine();
     }
 
+    @Override
+    public Optional<String> promptRequired(String label, String detectedValue) {
+        if (detectedValue == null || detectedValue.isBlank()) {
+            return promptUntilValue(label + " is required. Enter value: ");
+        }
+
+        out.println("Detected " + label + ": " + detectedValue);
+        out.print("Use this? [Y/n] ");
+        Optional<String> answer = readLine();
+        if (answer.isEmpty() || answer.get().isBlank() || answer.get().trim().equalsIgnoreCase("y") || answer.get().trim().equalsIgnoreCase("yes")) {
+            return Optional.empty();
+        }
+        return promptUntilValue("Enter " + label + ": ");
+    }
+
+    private Optional<String> promptUntilValue(String message) {
+        while (true) {
+            out.print(message);
+            Optional<String> answer = readLine();
+            if (answer.isEmpty()) {
+                return Optional.empty();
+            }
+            if (!answer.get().isBlank()) {
+                return answer;
+            }
+            out.println("A value is required.");
+        }
+    }
+
     private Optional<String> readLine() {
         if (!scanner.hasNextLine()) {
             return Optional.empty();

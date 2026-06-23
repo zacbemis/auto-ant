@@ -71,6 +71,7 @@ class ProjectDetectorTest {
         var model = new ProjectDetector().detect(tempDir, NonInteractiveOptions.builder(tempDir).build());
 
         assertEquals(DetectionStatus.USER_REQUIRED, model.javaRelease().status());
+        assertEquals(DetectionStatus.USER_REQUIRED, model.jdkHome().status());
         assertEquals(DetectionStatus.USER_REQUIRED, model.tomcatHome().status());
         assertEquals(DetectionStatus.USER_REQUIRED, model.libraryRoots().status());
     }

@@ -26,6 +26,7 @@ final class InteractiveOptionsPrompter {
         builder.appName(promptString("app.name", model.appName(), builder.appName()));
         builder.contextPath(promptString("context.path", model.contextPath(), builder.contextPath()));
         builder.javaRelease(promptInteger("java.release", model.javaRelease(), builder.javaRelease()));
+        builder.jdkHome(promptRequiredPath("jdk.home", model.jdkHome(), builder.jdkHome(), model.projectRoot()));
         builder.tomcatHome(promptPath("tomcat.home", model.tomcatHome(), builder.tomcatHome(), model.projectRoot()));
         builder.sourceRoots(promptPathList("src.dirs", model.sourceRoots(), builder.sourceRoots(), model.projectRoot()));
         builder.webRoot(promptWebRoot("web.dir", model.webRoot(), builder.webRoot(), model.projectRoot()));
@@ -53,6 +54,15 @@ final class InteractiveOptionsPrompter {
     private Optional<Path> promptPath(String label, DetectionResult<Path> detected, Optional<Path> currentOverride, Path root) {
         String detectedValue = detected.value().map(path -> PathUtils.display(root, path)).orElse("");
         Optional<String> answer = context.promptService().promptOverride(label, detectedValue);
+        if (answer.isEmpty() || answer.get().isBlank()) {
+            return currentOverride;
+        }
+        return Optional.of(PathUtils.resolve(root, answer.get()));
+    }
+
+    private Optional<Path> promptRequiredPath(String label, DetectionResult<Path> detected, Optional<Path> currentOverride, Path root) {
+        String detectedValue = detected.value().map(path -> PathUtils.display(root, path)).orElse("");
+        Optional<String> answer = context.promptService().promptRequired(label, detectedValue);
         if (answer.isEmpty() || answer.get().isBlank()) {
             return currentOverride;
         }

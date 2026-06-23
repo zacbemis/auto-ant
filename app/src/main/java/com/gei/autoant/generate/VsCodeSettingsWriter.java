@@ -28,21 +28,64 @@ public final class VsCodeSettingsWriter {
                 + "|"
                 + filesUnderPattern(ModelValues.relativePath(model, ModelValues.webRoot(model)), "\\.(" + JSP_VIEW_EXTENSIONS + ")$")
                 + ")";
+        String javaPattern = ModelValues.sourceRoots(model).stream()
+                .map(sourceRoot -> filesUnderPattern(ModelValues.relativePath(model, sourceRoot), "\\.java$"))
+                .collect(Collectors.joining("|", "(", ")"));
         String configPattern = ".*(WEB-INF[/\\\\]web\\.xml|context\\.xml|\\.(properties|xml|jar))$";
         String referencedLibraries = referencedLibraries(model);
+        String jdkSettings = jdkSettings(model);
+        String reloadCommand = "auto-ant reload --root " + quoteShellPath(model.projectRoot());
+        String backendCommand = AntCommand.targetBuildFile(buildFile, "compile-hot")
+                + " && " + reloadCommand;
 
         return "{\n"
                 + "  \"java.project.referencedLibraries\": [\n"
                 + referencedLibraries
                 + "  ],\n"
+                + jdkSettings
                 + "  \"filewatcher.isSyncRunEvents\": true,\n"
                 + "  \"filewatcher.autoClearConsole\": false,\n"
                 + "  \"filewatcher.commands\": [\n"
                 + command(frontendPattern, AntCommand.targetBuildFile(buildFile, "sync-web")) + ",\n"
                 + command(webInfViewPattern, AntCommand.targetBuildFile(buildFile, "sync-web-inf")) + ",\n"
-                + command(configPattern, AntCommand.targetBuildFile(buildFile, "deploy-exploded") + " && auto-ant reload") + "\n"
+                + command(javaPattern, backendCommand) + ",\n"
+                + command(configPattern, AntCommand.targetBuildFile(buildFile, "deploy-exploded") + " && " + reloadCommand) + "\n"
                 + "  ]\n"
                 + "}\n";
+    }
+
+    private String jdkSettings(ProjectModel model) {
+        String jdkHome = ModelValues.jdkHome(model);
+        if (jdkHome.isBlank()) {
+            return "";
+        }
+
+        String jdkBin = withPathSegment(jdkHome, "bin");
+        return "  \"java.jdt.ls.java.home\": " + JsonUtils.quote(jdkHome) + ",\n"
+                + "  \"java.configuration.runtimes\": [\n"
+                + "    {\n"
+                + "      \"name\": \"" + javaRuntimeName(model) + "\",\n"
+                + "      \"path\": " + JsonUtils.quote(jdkHome) + ",\n"
+                + "      \"default\": true\n"
+                + "    }\n"
+                + "  ],\n"
+                + "  \"terminal.integrated.env.windows\": {\n"
+                + "    \"JAVA_HOME\": " + JsonUtils.quote(jdkHome) + ",\n"
+                + "    \"PATH\": " + JsonUtils.quote(jdkBin + ";${env:PATH}") + "\n"
+                + "  },\n"
+                + "  \"terminal.integrated.env.osx\": {\n"
+                + "    \"JAVA_HOME\": " + JsonUtils.quote(jdkHome) + ",\n"
+                + "    \"PATH\": " + JsonUtils.quote(jdkBin + ":${env:PATH}") + "\n"
+                + "  },\n"
+                + "  \"terminal.integrated.env.linux\": {\n"
+                + "    \"JAVA_HOME\": " + JsonUtils.quote(jdkHome) + ",\n"
+                + "    \"PATH\": " + JsonUtils.quote(jdkBin + ":${env:PATH}") + "\n"
+                + "  },\n";
+    }
+
+    private String javaRuntimeName(ProjectModel model) {
+        int release = ModelValues.javaRelease(model);
+        return release == 8 ? "JavaSE-1.8" : "JavaSE-" + release;
     }
 
     private String referencedLibraries(ProjectModel model) {
@@ -68,6 +111,18 @@ public final class VsCodeSettingsWriter {
             normalized = normalized.substring(0, normalized.length() - 1);
         }
         return normalized + "/**/*.jar";
+    }
+
+    private String withPathSegment(String path, String segment) {
+        String normalized = path.replace('\\', '/');
+        while (normalized.endsWith("/")) {
+            normalized = normalized.substring(0, normalized.length() - 1);
+        }
+        return normalized + "/" + segment;
+    }
+
+    private String quoteShellPath(Path path) {
+        return "\"" + PathUtils.toPortableString(path.toAbsolutePath().normalize()).replace("\"", "\\\"") + "\"";
     }
 
     private String command(String match, String command) {

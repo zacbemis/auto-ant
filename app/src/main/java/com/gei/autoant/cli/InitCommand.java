@@ -76,7 +76,7 @@ public final class InitCommand {
                 for (String blocker : blockers) {
                     context.out().println("  - " + blocker);
                 }
-                context.out().println("Rerun init with --tomcat/--java or use --no-deploy to refresh files only.");
+                context.out().println("Rerun init with --tomcat/--java/--jdk or use --no-deploy to refresh files only.");
                 return 1;
             }
             return runInitialDeploy(model, result.buildFile());
@@ -94,7 +94,7 @@ public final class InitCommand {
         context.out().println();
         context.out().println("Prompts to accept or override detected values, then generates auto-ant.build.xml, auto-ant properties,");
         context.out().println("VS Code tasks/settings, safe .gitignore entries, and runs deploy-exploded.");
-        context.out().println("The VS Code settings include File Watcher commands and Java library paths.");
+        context.out().println("The VS Code settings include File Watcher commands, Java library paths, and the selected JDK home.");
         context.out().println("Project build.xml files are never modified.");
         context.out().println();
         context.out().println("Options:");
@@ -108,6 +108,7 @@ public final class InitCommand {
         context.out().println("  --tomcat <path>           Tomcat home.");
         context.out().println("  --ant <path>              Ant executable.");
         context.out().println("  --java <release>          Java release.");
+        context.out().println("  --jdk <path>              JDK home directory used by generated VS Code settings.");
         context.out().println("  --reload-strategy <name>  manager, touch-webxml, or none.");
         context.out().println("  --tomcat-manager-url <url>");
         context.out().println("  --no-deploy              Generate/refresh files without running deploy-exploded.");
@@ -155,6 +156,9 @@ public final class InitCommand {
         List<String> blockers = new ArrayList<>();
         if (model.javaRelease().value().isEmpty() || model.javaRelease().status() == DetectionStatus.USER_REQUIRED) {
             blockers.add("java.release is missing; rerun with --java <release> or provide it when prompted.");
+        }
+        if (model.jdkHome().value().isEmpty() || model.jdkHome().status() == DetectionStatus.USER_REQUIRED) {
+            blockers.add("jdk.home is missing; rerun with --jdk <path> or provide it when prompted.");
         }
         if (model.tomcatHome().value().isEmpty() || model.tomcatHome().status() == DetectionStatus.USER_REQUIRED) {
             blockers.add("tomcat.home is missing; rerun with --tomcat <path> or provide it when prompted.");

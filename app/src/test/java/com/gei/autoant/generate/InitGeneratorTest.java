@@ -129,7 +129,8 @@ class InitGeneratorTest {
         assertTrue(settingsJson.contains("-f "));
         assertTrue(settingsJson.contains("sync-web\""));
         assertTrue(settingsJson.contains("sync-web-inf\""));
-        assertFalse(settingsJson.contains("compile-hot && auto-ant reload"));
+        assertTrue(settingsJson.contains("compile-hot && auto-ant reload"));
+        assertTrue(settingsJson.contains("\\\\.java$"));
         assertTrue(settingsJson.contains("jsp|jspf|tag|tagx|tld"));
         assertTrue(settingsJson.contains("html|htm|css"));
     }

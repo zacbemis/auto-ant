@@ -31,7 +31,7 @@ class VsCodeSettingsWriterTest {
         assertTrue(settings.contains("\"isAsync\": false"));
         assertTrue(settings.contains("\"cmd\": \"ant -logger org.apache.tools.ant.DefaultLogger -f"));
         assertTrue(settings.contains("sync-web\""));
-        assertTrue(settings.contains("jsp|jspf|html|htm|css|js|ts"));
+        assertTrue(settings.contains("html|htm|css|js|ts"));
         assertTrue(settings.contains("(?!(WEB-INF|META-INF)"));
         assertTrue(settings.contains("web"));
     }
@@ -49,15 +49,15 @@ class VsCodeSettingsWriterTest {
     }
 
     @Test
-    void writesConfigWatcherCommandWithoutBackendJavaWatcher() throws IOException {
+    void writesConfigWatcherCommandAndBackendJavaWatcher() throws IOException {
         createProject("web");
         var model = new ProjectDetector().detect(tempDir, NonInteractiveOptions.builder(tempDir).build());
 
         String settings = new VsCodeSettingsWriter().write(model);
 
-        assertFalse(settings.contains("compile-hot && auto-ant reload\""));
-        assertFalse(settings.contains("\\\\.java$"));
-        assertTrue(settings.contains("deploy-exploded && auto-ant reload\""));
+        assertTrue(settings.contains("compile-hot && auto-ant reload --root"));
+        assertTrue(settings.contains("\\\\.java$"));
+        assertTrue(settings.contains("deploy-exploded && auto-ant reload --root"));
         assertTrue(settings.contains("WEB-INF"));
         assertTrue(settings.contains("properties|xml|jar"));
     }
@@ -93,6 +93,38 @@ class VsCodeSettingsWriterTest {
         String settings = new VsCodeSettingsWriter().write(model);
 
         assertTrue(settings.contains(portable(tomcatHome.resolve("lib")) + "/**/*.jar"));
+    }
+
+    @Test
+    void writesJdkHomeSettingsWhenJdkHomeIsKnown() throws IOException {
+        createProject("web");
+        Path jdkHome = tempDir.resolve("jdk-17");
+        var model = new ProjectDetector().detect(tempDir, NonInteractiveOptions.builder(tempDir)
+                .javaRelease(17)
+                .jdkHome(jdkHome)
+                .build());
+
+        String settings = new VsCodeSettingsWriter().write(model);
+
+        assertTrue(settings.contains("\"java.jdt.ls.java.home\": \"" + portable(jdkHome.toAbsolutePath().normalize()) + "\""));
+        assertTrue(settings.contains("\"java.configuration.runtimes\""));
+        assertTrue(settings.contains("\"name\": \"JavaSE-17\""));
+        assertTrue(settings.contains("\"JAVA_HOME\": \"" + portable(jdkHome.toAbsolutePath().normalize()) + "\""));
+        assertTrue(settings.contains(portable(jdkHome.toAbsolutePath().normalize()) + "/bin;${env:PATH}"));
+    }
+
+    @Test
+    void usesVsCodeJavaRuntimeNameForJavaEight() throws IOException {
+        createProject("web");
+        Path jdkHome = tempDir.resolve("jdk8");
+        var model = new ProjectDetector().detect(tempDir, NonInteractiveOptions.builder(tempDir)
+                .javaRelease(8)
+                .jdkHome(jdkHome)
+                .build());
+
+        String settings = new VsCodeSettingsWriter().write(model);
+
+        assertTrue(settings.contains("\"name\": \"JavaSE-1.8\""));
     }
 
     private void createProject(String webDirectory) throws IOException {

@@ -89,8 +89,14 @@ final class ModelValues {
                 .orElse("");
     }
 
+    static String jdkHome(ProjectModel model) {
+        return model.jdkHome().value()
+                .map(path -> PathUtils.toPortableString(path.toAbsolutePath().normalize()))
+                .orElse("");
+    }
+
     static String reloadStrategy(ProjectModel model) {
-        return model.reloadStrategy().value().orElse(ReloadStrategy.MANAGER).propertyValue();
+        return model.reloadStrategy().value().orElse(ReloadStrategy.TOUCH_WEBXML).propertyValue();
     }
 
     static String managerUrl(ProjectModel model) {

@@ -40,10 +40,10 @@
 3. From your Ant web project, run `init`:
 
    ```powershell
-   auto-ant init --tomcat C:\path\to\tomcat
+   auto-ant init --tomcat C:\path\to\tomcat --jdk C:\path\to\jdk
    ```
 
-   `init` detects the project layout, generates or refreshes `auto-ant.build.xml`, `auto-ant.properties`, `auto-ant.local.properties`, `.vscode/tasks.json`, and `.vscode/settings.json`, then runs `deploy-exploded` unless `--no-deploy` is provided. Existing project `build.xml` files, including NetBeans builds, are left untouched.
+   `init` detects the project layout, asks for the JDK home directory if `--jdk` is not provided, generates or refreshes `auto-ant.build.xml`, `auto-ant.properties`, `auto-ant.local.properties`, `.vscode/tasks.json`, and `.vscode/settings.json`, then runs `deploy-exploded` unless `--no-deploy` is provided. The generated VS Code settings set the selected JDK for Java tooling and integrated-terminal Ant commands. Existing project `build.xml` files, including NetBeans builds, are left untouched.
 
 4. There are generated VS Code tasks and CLI commands that may be needed. File Watcher will automatically run the Ant script to update the frontend, and Tomcat will auto restart on backend changes:
 
