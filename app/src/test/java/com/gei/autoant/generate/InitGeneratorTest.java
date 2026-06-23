@@ -45,7 +45,11 @@ class InitGeneratorTest {
         assertTrue(buildXml.contains("${catalina.base}/lib"));
         assertTrue(buildXml.contains("exclude name=\"WEB-INF/**\""));
         assertTrue(buildXml.contains("target name=\"sync-web-inf\""));
+        assertTrue(buildXml.contains("Syncing JSP/view/static resources from ${web.dir} to ${deploy.dir}"));
         assertTrue(buildXml.contains("include name=\"**/*.jsp\""));
+        assertTrue(buildXml.contains("exclude name=\"WEB-INF/classes/**\""));
+        assertTrue(buildXml.contains("exclude name=\"WEB-INF/lib/**\""));
+        assertTrue(buildXml.contains("exclude name=\"WEB-INF/web.xml\""));
         assertTrue(buildXml.contains("${deploy.dir}/WEB-INF"));
         assertTrue(buildXml.contains("Set deploy.dir to the running exploded app folder"));
         assertTrue(Files.readString(tempDir.resolve("auto-ant.properties")).contains("app.name=MyApp"));
@@ -126,7 +130,8 @@ class InitGeneratorTest {
         assertTrue(settingsJson.contains("sync-web\""));
         assertTrue(settingsJson.contains("sync-web-inf\""));
         assertFalse(settingsJson.contains("compile-hot && auto-ant reload"));
-        assertTrue(settingsJson.contains("jsp|jspf|html"));
+        assertTrue(settingsJson.contains("jsp|jspf|tag|tagx|tld"));
+        assertTrue(settingsJson.contains("html|htm|css"));
     }
 
     @Test

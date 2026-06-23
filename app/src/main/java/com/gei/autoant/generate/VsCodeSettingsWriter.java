@@ -13,8 +13,9 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public final class VsCodeSettingsWriter {
-    private static final String FRONTEND_EXTENSIONS = "jsp|jspf|html|htm|css|js|ts|png|jpg|jpeg|gif|svg|webp|ico|woff|woff2";
-    private static final String WEB_INF_VIEW_EXTENSIONS = FRONTEND_EXTENSIONS + "|tag|tagx|tld";
+    private static final String FRONTEND_EXTENSIONS = "html|htm|css|js|ts|png|jpg|jpeg|gif|svg|webp|ico|woff|woff2";
+    private static final String JSP_VIEW_EXTENSIONS = "jsp|jspf|tag|tagx|tld";
+    private static final String WEB_INF_VIEW_EXTENSIONS = FRONTEND_EXTENSIONS + "|" + JSP_VIEW_EXTENSIONS;
 
     public String write(ProjectModel model) {
         return write(model, model.projectRoot().resolve(InitGenerator.AUTO_ANT_BUILD_FILE));
@@ -22,7 +23,11 @@ public final class VsCodeSettingsWriter {
 
     public String write(ProjectModel model, Path buildFile) {
         String frontendPattern = publicFilesUnderWebRootPattern(ModelValues.relativePath(model, ModelValues.webRoot(model)));
-        String webInfViewPattern = filesUnderPattern(ModelValues.relativePath(model, ModelValues.webInf(model)), "\\.(" + WEB_INF_VIEW_EXTENSIONS + ")$");
+        String webInfViewPattern = "("
+                + filesUnderPattern(ModelValues.relativePath(model, ModelValues.webInf(model)), "\\.(" + WEB_INF_VIEW_EXTENSIONS + ")$")
+                + "|"
+                + filesUnderPattern(ModelValues.relativePath(model, ModelValues.webRoot(model)), "\\.(" + JSP_VIEW_EXTENSIONS + ")$")
+                + ")";
         String configPattern = ".*(WEB-INF[/\\\\]web\\.xml|context\\.xml|\\.(properties|xml|jar))$";
         String referencedLibraries = referencedLibraries(model);
 
