@@ -35,11 +35,14 @@ class InitGeneratorTest {
         String buildXml = Files.readString(tempDir.resolve("auto-ant.build.xml"));
         assertTrue(buildXml.contains("target name=\"clean-build\""));
         assertTrue(buildXml.contains("target name=\"deploy-exploded\""));
+        assertTrue(buildXml.contains("depends=\"clean,copy-web,compile,copy-libs\""));
         assertTrue(buildXml.contains("property name=\"deploy.dir\""));
         assertTrue(buildXml.contains("target name=\"write-context-descriptor\""));
         assertTrue(buildXml.contains("${catalina.base}/conf/Catalina/localhost"));
         assertTrue(buildXml.contains("&lt;Context reloadable=&quot;true&quot;/&gt;"));
         assertTrue(buildXml.contains("&lt;Context docBase=&quot;${context.descriptor.docBase}&quot; reloadable=&quot;true&quot;/&gt;"));
+        assertTrue(buildXml.contains("<delete dir=\"${classes.dir}\"/>"));
+        assertTrue(buildXml.contains("<delete dir=\"${deploy.dir}/WEB-INF/classes\"/>"));
         assertTrue(buildXml.contains("${deploy.dir}/WEB-INF/classes"));
         assertTrue(buildXml.contains("${tomcat.home}/lib"));
         assertTrue(buildXml.contains("${catalina.base}/lib"));
