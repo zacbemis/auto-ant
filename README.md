@@ -54,6 +54,26 @@
    auto-ant vscode
    ```
 
+## Automatically recover after changing Git branches
+
+Changing branches can leave Tomcat's exploded deployment and compiled classes out of sync with the checked-out files. `auto-ant` can install a Git `post-checkout` hook that runs after branch checkouts:
+
+```powershell
+auto-ant branch-refresh --install-hook
+```
+
+After that one-time setup, every branch checkout runs:
+
+```powershell
+auto-ant branch-refresh
+```
+
+The generated `branch-refresh` Ant target performs a clean exploded redeploy and web sync, then `auto-ant branch-refresh` reloads the configured Tomcat context using your `reload.strategy`. To run the same recovery manually:
+
+```powershell
+auto-ant branch-refresh
+```
+
 ## Troubleshooting Ant on Windows
 
 When an Ant install includes `lib/ant-launcher.jar`, `auto-ant` runs Ant through Java directly instead of invoking `ant.bat`. This avoids Windows batch-script dependencies such as `find.exe`, which may be blocked by endpoint security tools on some machines.

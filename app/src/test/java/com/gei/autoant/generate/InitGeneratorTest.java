@@ -36,6 +36,8 @@ class InitGeneratorTest {
         assertTrue(buildXml.contains("target name=\"clean-build\""));
         assertTrue(buildXml.contains("target name=\"deploy-exploded\""));
         assertTrue(buildXml.contains("depends=\"clean,copy-web,compile,copy-libs\""));
+        assertTrue(buildXml.contains("target name=\"branch-refresh\""));
+        assertTrue(buildXml.contains("depends=\"deploy-exploded,sync-web\""));
         assertTrue(buildXml.contains("property name=\"deploy.dir\""));
         assertTrue(buildXml.contains("target name=\"write-context-descriptor\""));
         assertTrue(buildXml.contains("${catalina.base}/conf/Catalina/localhost"));

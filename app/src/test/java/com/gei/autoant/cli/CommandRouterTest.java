@@ -24,6 +24,7 @@ class CommandRouterTest {
         int exitCode = harness.router().run(new String[]{});
 
         assertEquals(0, exitCode);
+        assertTrue(harness.stdout().contains("auto-ant branch-refresh"));
         assertTrue(harness.stdout().contains("auto-ant doctor"));
         assertTrue(harness.stdout().contains("auto-ant init"));
         assertFalse(harness.stdout().contains("auto-ant watch"));
