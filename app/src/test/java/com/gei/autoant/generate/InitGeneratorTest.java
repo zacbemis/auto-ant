@@ -67,6 +67,7 @@ class InitGeneratorTest {
         assertTrue(Files.readString(tempDir.resolve("auto-ant.properties")).contains("java.release=25"));
         assertTrue(Files.readString(tempDir.resolve("auto-ant.local.properties")).contains("deploy.dir="));
         assertTrue(Files.readString(tempDir.resolve("auto-ant.local.properties")).contains("AUTO-ANT LOCAL USER CONFIGURATION"));
+        assertTrue(Files.readString(tempDir.resolve("auto-ant.local.properties")).contains("jdk.home="));
         assertTrue(Files.readString(tempDir.resolve("auto-ant.local.properties")).contains("context.descriptor.dir="));
         assertTrue(Files.readString(tempDir.resolve("auto-ant.local.properties")).contains("# context.descriptor.docBase="));
         assertTrue(Files.readString(tempDir.resolve(".gitignore")).contains("auto-ant.local.properties"));

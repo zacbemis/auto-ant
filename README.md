@@ -43,7 +43,17 @@
    auto-ant init --tomcat C:\path\to\tomcat --jdk C:\path\to\jdk
    ```
 
-   `init` detects the project layout, asks for the JDK home directory if `--jdk` is not provided, generates or refreshes `auto-ant.build.xml`, `auto-ant.properties`, `auto-ant.local.properties`, `.vscode/tasks.json`, and `.vscode/settings.json`, then runs `deploy-exploded` unless `--no-deploy` is provided. The generated VS Code settings set the selected JDK for Java tooling and integrated-terminal Ant commands. Existing project `build.xml` files, including NetBeans builds, are left untouched.
+   `init` detects the project layout, asks for the JDK home directory if `--jdk` is not provided, generates or refreshes `auto-ant.build.xml`, `auto-ant.user.xml`, `auto-ant.properties`, `auto-ant.local.properties`, `.vscode/tasks.json`, and `.vscode/settings.json`, then runs `deploy-exploded` unless `--no-deploy` is provided. The generated VS Code settings set the selected JDK for Java tooling and integrated-terminal Ant commands. Existing project `build.xml` files, including NetBeans builds, are left untouched.
+
+   `auto-ant.build.xml` and auto-ant VS Code tasks/settings are managed by auto-ant and include comments explaining what not to edit directly. Put custom Ant properties, paths, targets, or helper macros in `auto-ant.user.xml`; auto-ant creates that file if missing and leaves it untouched afterward.
+
+   After upgrading auto-ant, run this from an existing project to refresh generated build files and VS Code configuration without deploying:
+
+   ```powershell
+   auto-ant update
+   ```
+
+   `update` refreshes `auto-ant.build.xml` with a backup, preserves `auto-ant.user.xml`, appends only missing keys to existing properties files, refreshes `auto-ant:` VS Code tasks while preserving custom tasks, and preserves unrelated VS Code settings.
 
 4. There are generated VS Code tasks and CLI commands that may be needed. File Watcher will automatically run the Ant script to update the frontend, and Tomcat will auto restart on backend changes:
 

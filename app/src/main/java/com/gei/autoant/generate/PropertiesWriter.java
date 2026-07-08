@@ -39,6 +39,7 @@ public final class PropertiesWriter {
     public String writeLocal(ProjectModel model) {
         String contextDeployName = ModelValues.contextDeployName(model);
         String tomcatHome = ModelValues.tomcatHome(model);
+        String jdkHome = ModelValues.jdkHome(model);
         String deployDir = tomcatHome.isBlank() ? "" : tomcatHome + "/webapps/" + contextDeployName;
         String contextDescriptorDir = tomcatHome.isBlank() ? "" : tomcatHome + "/conf/Catalina/localhost";
         String deployDirLine = deployDir.isBlank()
@@ -53,6 +54,7 @@ public final class PropertiesWriter {
                 + "\n"
                 + "tomcat.home=" + tomcatHome + "\n"
                 + "catalina.base=" + tomcatHome + "\n"
+                + "jdk.home=" + jdkHome + "\n"
                 + "# Exploded webapp directory used by sync-web, compile-hot, and touch-webxml reload.\n"
                 + "# Defaults to ${catalina.base}/webapps/${context.deploy.name} when not set here.\n"
                 + deployDirLine

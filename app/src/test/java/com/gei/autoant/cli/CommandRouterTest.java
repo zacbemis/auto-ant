@@ -27,6 +27,7 @@ class CommandRouterTest {
         assertTrue(harness.stdout().contains("auto-ant branch-refresh"));
         assertTrue(harness.stdout().contains("auto-ant doctor"));
         assertTrue(harness.stdout().contains("auto-ant init"));
+        assertTrue(harness.stdout().contains("auto-ant update"));
         assertFalse(harness.stdout().contains("auto-ant watch"));
     }
 
@@ -49,6 +50,16 @@ class CommandRouterTest {
 
         assertEquals(0, exitCode);
         assertTrue(harness.stdout().contains("Usage: auto-ant doctor"));
+    }
+
+    @Test
+    void updateHelpDoesNotRequireProjectDetection() {
+        Harness harness = new Harness(tempDir);
+
+        int exitCode = harness.router().run(new String[]{"update", "--help"});
+
+        assertEquals(0, exitCode);
+        assertTrue(harness.stdout().contains("Usage: auto-ant update"));
     }
 
     @Test

@@ -23,6 +23,7 @@ public final class CommandRouter {
             case "branch-refresh" -> new BranchRefreshCommand(context).run(commandArgs);
             case "doctor" -> new DoctorCommand(context).run(commandArgs);
             case "init" -> new InitCommand(context).run(commandArgs);
+            case "update" -> new UpdateCommand(context).run(commandArgs);
             case "run" -> new RunCommand(context).run(commandArgs);
             case "vscode", "refresh-vscode" -> new VsCodeCommand(context).run(commandArgs);
             case "reload" -> new ReloadCommand(context).run(commandArgs);
@@ -46,6 +47,7 @@ public final class CommandRouter {
         context.out().println("  auto-ant branch-refresh [options]");
         context.out().println("  auto-ant doctor [options]");
         context.out().println("  auto-ant init [options]");
+        context.out().println("  auto-ant update [options]");
         context.out().println("  auto-ant vscode [options]");
         context.out().println("  auto-ant run <ant-target>");
         context.out().println("  auto-ant reload");
@@ -60,6 +62,6 @@ public final class CommandRouter {
         context.out().println("  --lib <paths>             Comma-separated library directories.");
         context.out().println("  --tomcat <path>           Tomcat home override.");
         context.out().println("  --java <release>          Java release override.");
-        context.out().println("  --interactive             Prompt in doctor mode; init always prompts before writing.");
+        context.out().println("  --interactive             Prompt in doctor/update mode; init always prompts before writing.");
     }
 }
