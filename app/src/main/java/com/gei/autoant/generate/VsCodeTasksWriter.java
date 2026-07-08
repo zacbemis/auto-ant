@@ -11,7 +11,10 @@ public final class VsCodeTasksWriter {
     }
 
     public String write(Path buildFile) {
-        return "{\n"
+        return "// AUTO-ANT MANAGED TASKS - DO NOT EDIT AUTO-ANT TASKS DIRECTLY.\n"
+                + "// This file may be updated by auto-ant init or auto-ant update.\n"
+                + "// Add custom tasks with labels that do not start with \"auto-ant:\".\n"
+                + "{\n"
                 + "  \"version\": \"2.0.0\",\n"
                 + "  \"tasks\": [\n"
                 + "    {\n"

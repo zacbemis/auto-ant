@@ -24,15 +24,18 @@ class InitGeneratorTest {
 
         GenerationResult result = new InitGenerator(tempDir).generate(model);
 
-        assertEquals(6, result.files().size());
+        assertEquals(7, result.files().size());
         assertEquals(tempDir.resolve("auto-ant.build.xml").toAbsolutePath().normalize(), result.buildFile());
         assertFalse(Files.exists(tempDir.resolve("build.xml")));
         assertTrue(Files.exists(tempDir.resolve("auto-ant.build.xml")));
+        assertTrue(Files.exists(tempDir.resolve("auto-ant.user.xml")));
         assertTrue(Files.exists(tempDir.resolve("auto-ant.properties")));
         assertTrue(Files.exists(tempDir.resolve("auto-ant.local.properties")));
         assertTrue(Files.exists(tempDir.resolve(".vscode/tasks.json")));
         assertTrue(Files.exists(tempDir.resolve(".vscode/settings.json")));
         String buildXml = Files.readString(tempDir.resolve("auto-ant.build.xml"));
+        assertTrue(buildXml.contains("AUTO-ANT GENERATED FILE - DO NOT EDIT DIRECTLY"));
+        assertTrue(buildXml.contains("<import file=\"auto-ant.user.xml\" optional=\"true\"/>"));
         assertTrue(buildXml.contains("target name=\"clean-build\""));
         assertTrue(buildXml.contains("target name=\"deploy-exploded\""));
         assertTrue(buildXml.contains("depends=\"clean,copy-web,compile,copy-libs\""));
@@ -58,10 +61,12 @@ class InitGeneratorTest {
         assertTrue(buildXml.contains("${deploy.dir}/WEB-INF"));
         assertTrue(buildXml.contains("Set deploy.dir to the running exploded app folder"));
         assertTrue(Files.readString(tempDir.resolve("auto-ant.properties")).contains("app.name=MyApp"));
+        assertTrue(Files.readString(tempDir.resolve("auto-ant.properties")).contains("AUTO-ANT PROJECT CONFIGURATION"));
         assertTrue(Files.readString(tempDir.resolve("auto-ant.properties")).contains("context.deploy.name=MyApp"));
         assertTrue(Files.readString(tempDir.resolve("auto-ant.properties")).contains("context.descriptor.file.name=MyApp.xml"));
         assertTrue(Files.readString(tempDir.resolve("auto-ant.properties")).contains("java.release=25"));
         assertTrue(Files.readString(tempDir.resolve("auto-ant.local.properties")).contains("deploy.dir="));
+        assertTrue(Files.readString(tempDir.resolve("auto-ant.local.properties")).contains("AUTO-ANT LOCAL USER CONFIGURATION"));
         assertTrue(Files.readString(tempDir.resolve("auto-ant.local.properties")).contains("context.descriptor.dir="));
         assertTrue(Files.readString(tempDir.resolve("auto-ant.local.properties")).contains("# context.descriptor.docBase="));
         assertTrue(Files.readString(tempDir.resolve(".gitignore")).contains("auto-ant.local.properties"));
@@ -125,9 +130,10 @@ class InitGeneratorTest {
 
         GenerationResult result = new InitGenerator(tempDir).generate(model);
 
-        assertEquals(6, result.files().size());
+        assertEquals(7, result.files().size());
         assertTrue(Files.exists(tempDir.resolve(".vscode/settings.json")));
         String settingsJson = Files.readString(tempDir.resolve(".vscode/settings.json"));
+        assertTrue(settingsJson.contains("AUTO-ANT MANAGED SETTINGS - EDIT WITH CARE"));
         assertTrue(settingsJson.contains("\"java.project.referencedLibraries\""));
         assertTrue(settingsJson.contains("\"filewatcher.commands\""));
         assertTrue(settingsJson.contains("\"event\": \"onFileChange\""));
@@ -138,6 +144,20 @@ class InitGeneratorTest {
         assertTrue(settingsJson.contains("\\\\.java$"));
         assertTrue(settingsJson.contains("jsp|jspf|tag|tagx|tld"));
         assertTrue(settingsJson.contains("html|htm|css"));
+        String tasksJson = Files.readString(tempDir.resolve(".vscode/tasks.json"));
+        assertTrue(tasksJson.contains("AUTO-ANT MANAGED TASKS - DO NOT EDIT AUTO-ANT TASKS DIRECTLY"));
+        assertTrue(tasksJson.contains("Add custom tasks with labels that do not start with \"auto-ant:\""));
+    }
+
+    @Test
+    void existingUserBuildFileIsNeverOverwritten() throws IOException {
+        createSimpleProject();
+        Files.writeString(tempDir.resolve("auto-ant.user.xml"), "<project name=\"mine\"/>\n");
+        var model = new ProjectDetector().detect(tempDir, NonInteractiveOptions.builder(tempDir).build());
+
+        new InitGenerator(tempDir).generate(model);
+
+        assertEquals("<project name=\"mine\"/>\n", Files.readString(tempDir.resolve("auto-ant.user.xml")));
     }
 
     @Test

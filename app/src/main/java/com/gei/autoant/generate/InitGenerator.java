@@ -11,6 +11,7 @@ import java.util.List;
 
 public final class InitGenerator {
     public static final String AUTO_ANT_BUILD_FILE = "auto-ant.build.xml";
+    public static final String AUTO_ANT_USER_BUILD_FILE = "auto-ant.user.xml";
 
     private final Path projectRoot;
 
@@ -24,6 +25,7 @@ public final class InitGenerator {
         Path buildFile = buildFile();
 
         files.add(writeGenerated(buildFile, new BuildXmlWriter().write(model)));
+        files.add(writeIfMissing(userBuildFile(), new UserBuildXmlWriter().write()));
         files.add(writeSafely(projectRoot.resolve("auto-ant.properties"), projectRoot.resolve("auto-ant.properties.auto-ant-new"), propertiesWriter.writeShared(model)));
         files.add(writeSafely(projectRoot.resolve("auto-ant.local.properties"), projectRoot.resolve("auto-ant.local.properties.auto-ant-new"), propertiesWriter.writeLocal(model)));
 
@@ -49,6 +51,10 @@ public final class InitGenerator {
 
     private Path buildFile() {
         return projectRoot.resolve(AUTO_ANT_BUILD_FILE);
+    }
+
+    private Path userBuildFile() {
+        return projectRoot.resolve(AUTO_ANT_USER_BUILD_FILE);
     }
 
     private GeneratedFile writeSafely(Path primary, Path alternate, String content) throws IOException {
@@ -97,6 +103,18 @@ public final class InitGenerator {
         }
         return new GeneratedFile(target, WriteStatus.CREATED,
                 "Created " + projectRoot.relativize(target).toString().replace('\\', '/') + ".");
+    }
+
+    private GeneratedFile writeIfMissing(Path target, String content) throws IOException {
+        Files.createDirectories(target.getParent() == null ? projectRoot : target.getParent());
+        String relativePath = projectRoot.relativize(target).toString().replace('\\', '/');
+        if (Files.exists(target)) {
+            return new GeneratedFile(target, WriteStatus.UNCHANGED,
+                    relativePath + " already exists; leaving user customizations untouched.");
+        }
+        Files.writeString(target, content, StandardCharsets.UTF_8);
+        return new GeneratedFile(target, WriteStatus.CREATED,
+                "Created " + relativePath + " for user Ant customizations.");
     }
 
     private Path nextAvailableAlternate(Path alternate) {

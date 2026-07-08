@@ -6,9 +6,14 @@ import java.util.List;
 import java.util.Map;
 
 final class VsCodeSettingsMerger {
+    private static final String GENERATED_HEADER = "// AUTO-ANT MANAGED SETTINGS - EDIT WITH CARE.\n"
+            + "// auto-ant update may refresh auto-ant-managed keys such as filewatcher commands,\n"
+            + "// Java runtime settings, terminal Java environment, and referenced libraries.\n"
+            + "// Unrelated user settings are preserved.\n";
+
     String merge(String existingSettings, String generatedSettings) {
-        List<Member> existingMembers = readMembers(existingSettings);
-        List<Member> generatedMembers = readMembers(generatedSettings);
+        List<Member> existingMembers = readMembers(stripGeneratedHeader(existingSettings));
+        List<Member> generatedMembers = readMembers(stripLeadingLineComments(generatedSettings));
         if (existingMembers == null || generatedMembers == null) {
             return null;
         }
@@ -26,7 +31,7 @@ final class VsCodeSettingsMerger {
         }
         merged.addAll(generatedByKey.values());
 
-        StringBuilder builder = new StringBuilder("{\n");
+        StringBuilder builder = new StringBuilder(GENERATED_HEADER).append("{\n");
         for (int i = 0; i < merged.size(); i++) {
             builder.append(indent(merged.get(i).text()));
             if (i + 1 < merged.size()) {
@@ -35,6 +40,41 @@ final class VsCodeSettingsMerger {
             builder.append('\n');
         }
         return builder.append("}\n").toString();
+    }
+
+    private String stripGeneratedHeader(String json) {
+        if (json == null || json.isBlank()) {
+            return json;
+        }
+
+        int index = 0;
+        while (index < json.length() && Character.isWhitespace(json.charAt(index))) {
+            index++;
+        }
+        if (json.startsWith(GENERATED_HEADER, index)) {
+            return json.substring(index + GENERATED_HEADER.length());
+        }
+        return json;
+    }
+
+    private String stripLeadingLineComments(String json) {
+        if (json == null || json.isBlank()) {
+            return json;
+        }
+
+        int index = 0;
+        while (index < json.length()) {
+            while (index < json.length() && Character.isWhitespace(json.charAt(index))) {
+                index++;
+            }
+            if (index + 1 >= json.length() || json.charAt(index) != '/' || json.charAt(index + 1) != '/') {
+                break;
+            }
+            while (index < json.length() && json.charAt(index) != '\n') {
+                index++;
+            }
+        }
+        return json.substring(index);
     }
 
     private List<Member> readMembers(String json) {

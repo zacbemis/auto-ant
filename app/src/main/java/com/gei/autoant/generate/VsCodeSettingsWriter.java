@@ -38,7 +38,11 @@ public final class VsCodeSettingsWriter {
         String backendCommand = AntCommand.targetBuildFile(buildFile, "compile-hot")
                 + " && " + reloadCommand;
 
-        return "{\n"
+        return "// AUTO-ANT MANAGED SETTINGS - EDIT WITH CARE.\n"
+                + "// auto-ant update may refresh auto-ant-managed keys such as filewatcher commands,\n"
+                + "// Java runtime settings, terminal Java environment, and referenced libraries.\n"
+                + "// Unrelated user settings are preserved.\n"
+                + "{\n"
                 + "  \"java.project.referencedLibraries\": [\n"
                 + referencedLibraries
                 + "  ],\n"
