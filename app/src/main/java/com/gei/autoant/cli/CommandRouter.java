@@ -16,6 +16,10 @@ public final class CommandRouter {
             return 0;
         }
 
+        if (looksLikeTopLevelUpdateOptions(args)) {
+            return new UpdateCommand(context).run(args);
+        }
+
         String command = args[0].toLowerCase(Locale.ROOT);
         String[] commandArgs = Arrays.copyOfRange(args, 1, args.length);
 
@@ -38,6 +42,14 @@ public final class CommandRouter {
 
     private boolean isHelp(String value) {
         return "help".equalsIgnoreCase(value) || "--help".equals(value) || "-h".equals(value);
+    }
+
+    private boolean looksLikeTopLevelUpdateOptions(String[] args) {
+        if (!args[0].startsWith("-") || isHelp(args[0])) {
+            return false;
+        }
+        CommandLine commandLine = CommandLine.parse(args);
+        return commandLine.hasAnyCommonUpdateOption();
     }
 
     private void printHelp() {

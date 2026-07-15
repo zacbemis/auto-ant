@@ -12,7 +12,9 @@ import com.gei.autoant.util.PropertiesUtils;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.LinkedHashSet;
 import java.util.Properties;
+import java.util.Set;
 
 public final class UpdateCommand {
     private final CommandContext context;
@@ -36,7 +38,7 @@ public final class UpdateCommand {
                 model = new ProjectDetector().detect(options.projectRoot(), options);
             }
 
-            GenerationResult result = new UpdateGenerator(model.projectRoot()).update(model);
+            GenerationResult result = new UpdateGenerator(model.projectRoot()).update(model, sharedOverrideKeys(commandLine), localOverrideKeys(commandLine));
             context.out().println("auto-ant update");
             context.out().println();
             for (GeneratedFile generatedFile : result.files()) {
@@ -143,6 +145,55 @@ public final class UpdateCommand {
 
     private java.util.Optional<String> property(Properties properties, String key) {
         return java.util.Optional.ofNullable(properties.getProperty(key)).map(String::trim).filter(value -> !value.isEmpty());
+    }
+
+    private Set<String> sharedOverrideKeys(CommandLine commandLine) {
+        Set<String> keys = new LinkedHashSet<>();
+        if (commandLine.hasOption("app")) {
+            keys.add("app.name");
+        }
+        if (commandLine.hasAnyOption("context", "context-path")) {
+            keys.add("context.path");
+            keys.add("context.deploy.name");
+            keys.add("context.descriptor.file.name");
+        }
+        if (commandLine.hasOption("java")) {
+            keys.add("java.release");
+        }
+        if (commandLine.hasAnyOption("src", "source")) {
+            keys.add("src.dirs");
+        }
+        if (commandLine.hasOption("web")) {
+            keys.add("web.dir");
+        }
+        if (commandLine.hasAnyOption("webinf", "web-inf")) {
+            keys.add("webinf.dir");
+        }
+        if (commandLine.hasAnyOption("lib", "libs")) {
+            keys.add("lib.dirs");
+        }
+        return keys;
+    }
+
+    private Set<String> localOverrideKeys(CommandLine commandLine) {
+        Set<String> keys = new LinkedHashSet<>();
+        if (commandLine.hasOption("tomcat")) {
+            keys.add("tomcat.home");
+            keys.add("catalina.base");
+            keys.add("deploy.dir");
+            keys.add("context.descriptor.dir");
+        }
+        if (commandLine.hasAnyOption("context", "context-path")) {
+            keys.add("deploy.dir");
+            keys.add("context.descriptor.dir");
+        }
+        if (commandLine.hasAnyOption("jdk", "jdk-home")) {
+            keys.add("jdk.home");
+        }
+        if (commandLine.hasAnyOption("tomcat-manager-url", "manager-url")) {
+            keys.add("tomcat.manager.url");
+        }
+        return keys;
     }
 
     private Integer parseInteger(String value) {

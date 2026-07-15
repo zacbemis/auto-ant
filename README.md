@@ -55,14 +55,44 @@
 
    `update` refreshes `auto-ant.build.xml` with a backup, preserves `auto-ant.user.xml`, appends only missing keys to existing properties files, refreshes `auto-ant:` VS Code tasks while preserving custom tasks, and preserves unrelated VS Code settings.
 
-4. There are generated VS Code tasks and CLI commands that may be needed. File Watcher will automatically run the Ant script to update the frontend, and Tomcat will auto restart on backend changes:
+4. Useful commands:
 
    ```powershell
+   auto-ant doctor
    auto-ant run deploy-exploded
    auto-ant run sync-web
+   auto-ant run sync-web-inf
+   auto-ant run compile-hot
    auto-ant reload
    auto-ant vscode
    ```
+
+   - `auto-ant doctor` detects the project root, app name, context path, source roots, web root, `WEB-INF`, libraries, servlet namespace, Tomcat, Ant, Java, JDK, reload strategy, and Tomcat Manager URL. It writes nothing. Add `--interactive` to override detected values or `--strict` to fail when required values are missing.
+   - `auto-ant init` prompts for detected values, writes the generated auto-ant files, checks the File Watcher extension, and runs `deploy-exploded` unless `--no-deploy` is used.
+   - `auto-ant update` refreshes generated auto-ant build/config/VS Code files for the current CLI version. It preserves existing local/shared properties, custom tasks/settings, and does not deploy.
+   - `auto-ant vscode` regenerates only `.vscode/tasks.json` and `.vscode/settings.json`, preserving unrelated settings. `refresh-vscode` is an alias.
+   - `auto-ant run <target>` runs one or more targets from `auto-ant.build.xml`, not the project `build.xml`.
+   - `auto-ant reload` reloads Tomcat using `reload.strategy`: Tomcat Manager, touching deployed `WEB-INF/web.xml`, or printing a manual reload message.
+   - `auto-ant branch-refresh` runs the generated `branch-refresh` Ant target, then reloads Tomcat unless `--no-reload` is used.
+   - `auto-ant branch-refresh --install-hook` installs/updates `.git/hooks/post-checkout` so branch checkouts automatically run `auto-ant branch-refresh --from-hook`.
+
+   Common generated Ant targets:
+
+   - `clean` deletes build and dist output.
+   - `init` creates build output directories.
+   - `compile` compiles Java into `WEB-INF/classes`.
+   - `copy-web` copies the web root into the exploded build directory.
+   - `copy-libs` copies project JARs into `WEB-INF/lib`.
+   - `war` builds the WAR file.
+   - `clean-build` cleans and builds the WAR.
+   - `deploy-exploded` cleans, builds, copies the exploded app to Tomcat `webapps`, and writes the Tomcat context descriptor.
+   - `deploy-war` copies the WAR to Tomcat `webapps`.
+   - `branch-refresh` runs `deploy-exploded` and `sync-web` after a branch checkout.
+   - `sync-web` copies frontend/web files to the deployed exploded app, excluding `WEB-INF` and `META-INF`.
+   - `sync-web-inf` copies JSP/view/static resources without replacing classes, libraries, `web.xml`, or `META-INF`.
+   - `compile-hot` recompiles Java and replaces deployed `WEB-INF/classes`.
+   - `write-context-descriptor` writes the Tomcat context descriptor.
+   - `reload-hint` prints reload instructions.
 
 ## Automatically recover after changing Git branches
 

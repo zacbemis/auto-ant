@@ -9,6 +9,7 @@ import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 public final class UpdateGenerator {
@@ -21,18 +22,32 @@ public final class UpdateGenerator {
     }
 
     public GenerationResult update(ProjectModel model) throws IOException {
+        return update(model, List.of(), List.of());
+    }
+
+    public GenerationResult update(ProjectModel model, Collection<String> sharedOverrideKeys, Collection<String> localOverrideKeys) throws IOException {
         List<GeneratedFile> files = new ArrayList<>();
         PropertiesWriter propertiesWriter = new PropertiesWriter();
         Path buildFile = projectRoot.resolve(InitGenerator.AUTO_ANT_BUILD_FILE);
+        PropertiesMerger propertiesMerger = new PropertiesMerger();
+        String sharedProperties = propertiesWriter.writeShared(model);
+        String localProperties = propertiesWriter.writeLocal(model);
 
         files.add(writeGeneratedWithBackup(buildFile, new BuildXmlWriter().write(model)));
         files.add(writeIfMissing(projectRoot.resolve(InitGenerator.AUTO_ANT_USER_BUILD_FILE), new UserBuildXmlWriter().write()));
-        files.add(new PropertiesMerger().mergeMissing(projectRoot.resolve("auto-ant.properties"), propertiesWriter.writeShared(model), projectRoot));
-        files.add(new PropertiesMerger().mergeMissing(projectRoot.resolve("auto-ant.local.properties"), propertiesWriter.writeLocal(model), projectRoot));
+        files.add(mergeProperties(propertiesMerger, projectRoot.resolve("auto-ant.properties"), sharedProperties, sharedOverrideKeys));
+        files.add(mergeProperties(propertiesMerger, projectRoot.resolve("auto-ant.local.properties"), localProperties, localOverrideKeys));
         files.addAll(updateVsCodeFiles(model, buildFile));
         files.add(new GitignoreWriter().update(projectRoot.resolve(".gitignore")));
 
         return new GenerationResult(buildFile, files);
+    }
+
+    private GeneratedFile mergeProperties(PropertiesMerger propertiesMerger, Path target, String content, Collection<String> overrideKeys) throws IOException {
+        if (overrideKeys.isEmpty()) {
+            return propertiesMerger.mergeMissing(target, content, projectRoot);
+        }
+        return propertiesMerger.mergeOverrides(target, content, projectRoot, overrideKeys);
     }
 
     private List<GeneratedFile> updateVsCodeFiles(ProjectModel model, Path buildFile) throws IOException {

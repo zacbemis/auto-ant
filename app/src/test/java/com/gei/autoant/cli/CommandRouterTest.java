@@ -5,7 +5,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.PrintStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Optional;
 
@@ -91,6 +93,44 @@ class CommandRouterTest {
         assertEquals(2, exitCode);
         assertTrue(harness.stderr().contains("Unknown command: watch"));
         assertFalse(harness.stdout().contains("auto-ant watch"));
+    }
+
+    @Test
+    void topLevelCommonOptionsRouteToUpdateCommand() throws IOException {
+        createInitializedProject(tempDir);
+        Path tomcatHome = tempDir.resolve("apache-tomcat-9.0.120");
+        Harness harness = new Harness(tempDir);
+
+        int exitCode = harness.router().run(new String[]{"--tomcat", tomcatHome.toString()});
+
+        assertEquals(0, exitCode);
+        assertTrue(harness.stdout().contains("auto-ant update"));
+        assertFalse(harness.stderr().contains("Unknown command"));
+        String localProperties = Files.readString(tempDir.resolve("auto-ant.local.properties"));
+        assertTrue(localProperties.contains("tomcat.home=" + portable(tomcatHome)));
+        assertTrue(localProperties.contains("catalina.base=" + portable(tomcatHome)));
+    }
+
+    @Test
+    void topLevelNonCommonOptionsRemainUnknownCommands() {
+        Harness harness = new Harness(tempDir);
+
+        int exitCode = harness.router().run(new String[]{"--version"});
+
+        assertEquals(2, exitCode);
+        assertTrue(harness.stderr().contains("Unknown command: --version"));
+    }
+
+    private void createInitializedProject(Path projectRoot) throws IOException {
+        Files.createDirectories(projectRoot.resolve("src"));
+        Files.createDirectories(projectRoot.resolve("web/WEB-INF"));
+        Files.writeString(projectRoot.resolve("web/WEB-INF/web.xml"), "<web-app/>\n");
+        Files.writeString(projectRoot.resolve("auto-ant.properties"), "app.name=MyApp\ncontext.path=/MyApp\njava.release=8\n");
+        Files.writeString(projectRoot.resolve("auto-ant.local.properties"), "tomcat.home=old-tomcat\ncatalina.base=old-tomcat\njdk.home=\n");
+    }
+
+    private String portable(Path path) {
+        return path.toAbsolutePath().normalize().toString().replace('\\', '/');
     }
 
     private static final class Harness {

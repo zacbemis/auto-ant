@@ -32,6 +32,22 @@ public final class CommandLine {
             "tomcat",
             "ant"
     );
+    private static final Set<String> COMMON_UPDATE_OPTIONS = Set.of(
+            "root",
+            "app",
+            "context",
+            "context-path",
+            "src",
+            "source",
+            "web",
+            "webinf",
+            "web-inf",
+            "lib",
+            "libs",
+            "tomcat",
+            "java",
+            "interactive"
+    );
 
     private final Map<String, List<String>> options;
     private final List<String> positionals;
@@ -104,6 +120,15 @@ public final class CommandLine {
     public boolean hasAnyOption(String... names) {
         for (String name : names) {
             if (hasOption(name)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean hasAnyCommonUpdateOption() {
+        for (String name : options.keySet()) {
+            if (COMMON_UPDATE_OPTIONS.contains(name)) {
                 return true;
             }
         }

@@ -92,6 +92,40 @@ class UpdateGeneratorTest {
         assertTrue(settingsJson.contains("\"filewatcher.commands\""));
     }
 
+    @Test
+    void updateCanApplyExplicitPropertyOverrides() throws IOException {
+        createSimpleProject();
+        Path oldTomcatHome = tempDir.resolve("old-tomcat");
+        Path newTomcatHome = tempDir.resolve("apache-tomcat-9.0.120");
+        Files.writeString(tempDir.resolve("auto-ant.properties"), "app.name=OldApp\ncontext.path=/old\njava.release=8\n");
+        Files.writeString(tempDir.resolve("auto-ant.local.properties"), "tomcat.home=" + portable(oldTomcatHome) + "\ncatalina.base=" + portable(oldTomcatHome) + "\ndeploy.dir=" + portable(oldTomcatHome) + "/webapps/old\ntomcat.manager.password=secret\n");
+
+        var model = new ProjectDetector().detect(tempDir, NonInteractiveOptions.builder(tempDir)
+                .appName("NewApp")
+                .contextPath("/new")
+                .javaRelease(17)
+                .tomcatHome(newTomcatHome)
+                .build());
+
+        new UpdateGenerator(tempDir).update(model,
+                java.util.List.of("app.name", "context.path", "context.deploy.name", "context.descriptor.file.name", "java.release"),
+                java.util.List.of("tomcat.home", "catalina.base", "deploy.dir", "context.descriptor.dir"));
+
+        String sharedProperties = Files.readString(tempDir.resolve("auto-ant.properties"));
+        assertTrue(sharedProperties.contains("app.name=NewApp"));
+        assertTrue(sharedProperties.contains("context.path=/new"));
+        assertTrue(sharedProperties.contains("context.deploy.name=new"));
+        assertTrue(sharedProperties.contains("context.descriptor.file.name=new.xml"));
+        assertTrue(sharedProperties.contains("java.release=17"));
+
+        String localProperties = Files.readString(tempDir.resolve("auto-ant.local.properties"));
+        assertTrue(localProperties.contains("tomcat.home=" + portable(newTomcatHome)));
+        assertTrue(localProperties.contains("catalina.base=" + portable(newTomcatHome)));
+        assertTrue(localProperties.contains("deploy.dir=" + portable(newTomcatHome) + "/webapps/new"));
+        assertTrue(localProperties.contains("context.descriptor.dir=" + portable(newTomcatHome) + "/conf/Catalina/localhost"));
+        assertTrue(localProperties.contains("tomcat.manager.password=secret"));
+    }
+
     private void createSimpleProject() throws IOException {
         Files.createDirectories(tempDir.resolve("src"));
         Files.createDirectories(tempDir.resolve("web/WEB-INF"));

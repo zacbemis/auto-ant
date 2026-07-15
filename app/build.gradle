@@ -29,6 +29,55 @@ java {
     }
 }
 
+tasks.named('startScripts') {
+    doLast {
+        def windowsScriptFile = windowsScript
+        def windowsScriptText = windowsScriptFile.getText('UTF-8')
+        def windowsCheck = '''\
+:checkJavaVersion
+for /f "tokens=3" %%v in ('call "%JAVA_EXE%" -version 2^>^&1 ^| findstr /i "version"') do set JAVA_VERSION=%%v
+set JAVA_VERSION=%JAVA_VERSION:"=%
+for /f "tokens=1-2 delims=." %%a in ("%JAVA_VERSION%") do (
+    set JAVA_MAJOR=%%a
+    if "%%a"=="1" set JAVA_MAJOR=%%b
+)
+if not defined JAVA_MAJOR goto javaVersionWarning
+if %JAVA_MAJOR% GEQ 21 goto javaVersionOk
+
+echo. 1>&2
+echo ERROR: auto-ant requires Java 21 or newer to run. 1>&2
+echo The java executable selected by this launcher is: %JAVA_EXE% 1>&2
+echo Detected Java version: %JAVA_VERSION% 1>&2
+echo Set JAVA_HOME to a Java 21+ installation, or put Java 21+ first on PATH. 1>&2
+goto fail
+
+:javaVersionWarning
+echo WARNING: Could not determine Java version from %JAVA_EXE%; attempting to run auto-ant. 1>&2
+
+:javaVersionOk
+'''
+        windowsScriptText = windowsScriptText.replace(':execute\r\n@rem Setup the command line', ':execute\r\n' + windowsCheck.replace('\n', '\r\n') + '@rem Setup the command line')
+        windowsScriptFile.setText(windowsScriptText, 'UTF-8')
+
+        def unixScriptFile = unixScript
+        def unixScriptText = unixScriptFile.getText('UTF-8')
+        def unixCheck = '''\
+java_version_output=$("$JAVACMD" -version 2>&1 | awk -F '"' '/version/ {print $2; exit}')
+java_major=$(printf '%s' "$java_version_output" | awk -F. '{ if ($1 == "1") print $2; else print $1 }')
+if [ -n "$java_major" ] && [ "$java_major" -lt 21 ] 2>/dev/null; then
+    echo "" >&2
+    echo "ERROR: auto-ant requires Java 21 or newer to run." >&2
+    echo "The java executable selected by this launcher is: $JAVACMD" >&2
+    echo "Detected Java version: $java_version_output" >&2
+    echo "Set JAVA_HOME to a Java 21+ installation, or put Java 21+ first on PATH." >&2
+    exit 1
+fi
+'''
+        unixScriptText = unixScriptText.replace('\n# Add default JVM options here.', '\n' + unixCheck + '\n# Add default JVM options here.')
+        unixScriptFile.setText(unixScriptText, 'UTF-8')
+    }
+}
+
 application {
     // Define the main class for the application.
     mainClass = 'com.gei.autoant.Main'
