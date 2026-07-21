@@ -78,50 +78,6 @@ function Add-UserPathEntry {
     return $true
 }
 
-function Get-JavaMajorVersion {
-    param([Parameter(Mandatory = $true)][string] $VersionOutput)
-
-    if ($VersionOutput -match 'version\s+"(?<version>[^"]+)"') {
-        $versionText = $Matches.version
-        $parts = $versionText -split '\.'
-        if ($parts.Length -gt 1 -and $parts[0] -eq '1') {
-            return [int] $parts[1]
-        }
-        return [int] $parts[0]
-    }
-
-    throw "Could not parse Java version from: $VersionOutput"
-}
-
-function Test-Java21Runtime {
-    $javaCommand = $null
-    if (-not [string]::IsNullOrWhiteSpace($env:JAVA_HOME)) {
-        $candidate = Join-Path $env:JAVA_HOME 'bin\java.exe'
-        if (Test-Path $candidate -PathType Leaf) {
-            $javaCommand = $candidate
-        } else {
-            throw "JAVA_HOME is set, but java.exe was not found at $candidate. Set JAVA_HOME to a Java 21+ installation."
-        }
-    } else {
-        $javaCommandInfo = Get-Command java.exe -ErrorAction SilentlyContinue
-        if ($null -ne $javaCommandInfo) {
-            $javaCommand = $javaCommandInfo.Source
-        }
-    }
-
-    if ([string]::IsNullOrWhiteSpace($javaCommand)) {
-        throw 'auto-ant requires Java 21 or newer to run, but no java.exe was found. Install Java 21+ or set JAVA_HOME to a Java 21+ installation.'
-    }
-
-    $versionOutput = (& $javaCommand -version 2>&1) -join [Environment]::NewLine
-    $major = Get-JavaMajorVersion $versionOutput
-    if ($major -lt 21) {
-        throw "auto-ant requires Java 21 or newer to run. The selected Java runtime is version $major at $javaCommand. Set JAVA_HOME to a Java 21+ installation, or put Java 21+ first on PATH."
-    }
-
-    Write-Info "Verified Java $major runtime for the installed launcher: $javaCommand"
-}
-
 $repoRoot = $PSScriptRoot
 if ([string]::IsNullOrWhiteSpace($repoRoot)) {
     $repoRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -165,8 +121,6 @@ try {
     if (-not (Test-Path $launcher -PathType Leaf)) {
         throw "The installed launcher was not found at $launcher."
     }
-
-    Test-Java21Runtime
 
     if (-not $NoPathUpdate) {
         [void] (Add-UserPathEntry $binDir)
