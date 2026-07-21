@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -38,7 +39,7 @@ final class PropertiesMerger {
         for (Map.Entry<String, String> entry : missing.entrySet()) {
             updated.append(entry.getKey()).append('=').append(entry.getValue()).append(System.lineSeparator());
         }
-        Files.writeString(target, updated.toString(), StandardCharsets.UTF_8);
+        atomicReplace(target, updated.toString());
         return new GeneratedFile(target, WriteStatus.UPDATED,
                 "Updated " + relativePath + ": added " + missing.size() + " missing key" + (missing.size() == 1 ? "" : "s") + ".");
     }
@@ -53,25 +54,33 @@ final class PropertiesMerger {
 
         String existingContent = Files.readString(target, StandardCharsets.UTF_8);
         Map<String, String> desired = activeProperties(desiredContent);
+        Map<String, String> existing = activeProperties(existingContent);
+        Map<String, String> allUpdates = new LinkedHashMap<>();
+        for (Map.Entry<String, String> entry : desired.entrySet()) {
+            if (!existing.containsKey(entry.getKey())) {
+                allUpdates.put(entry.getKey(), entry.getValue());
+            }
+        }
         Map<String, String> overrides = new LinkedHashMap<>();
         for (String key : overrideKeys) {
             String value = desired.get(key);
             if (value != null) {
                 overrides.put(key, value);
+                allUpdates.put(key, value);
             }
         }
-        if (overrides.isEmpty()) {
+        if (allUpdates.isEmpty()) {
             return new GeneratedFile(target, WriteStatus.UNCHANGED, relativePath + " is up to date.");
         }
 
-        UpdateResult updateResult = replaceActiveProperties(existingContent, overrides);
+        UpdateResult updateResult = replaceActiveProperties(existingContent, allUpdates);
         StringBuilder updated = new StringBuilder(updateResult.content());
         if (!updateResult.content().endsWith("\n") && !updateResult.content().endsWith("\r")) {
             updated.append(System.lineSeparator());
         }
         Map<String, String> missing = updateResult.missing();
         if (!missing.isEmpty()) {
-            updated.append(System.lineSeparator()).append("# auto-ant update: added override keys").append(System.lineSeparator());
+            updated.append(System.lineSeparator()).append("# auto-ant update: added missing/override keys").append(System.lineSeparator());
             for (Map.Entry<String, String> entry : missing.entrySet()) {
                 updated.append(entry.getKey()).append('=').append(entry.getValue()).append(System.lineSeparator());
             }
@@ -82,9 +91,9 @@ final class PropertiesMerger {
             return new GeneratedFile(target, WriteStatus.UNCHANGED, relativePath + " is up to date.");
         }
 
-        Files.writeString(target, updatedContent, StandardCharsets.UTF_8);
+        atomicReplace(target, updatedContent);
         return new GeneratedFile(target, WriteStatus.UPDATED,
-                "Updated " + relativePath + ": applied " + overrides.size() + " override key" + (overrides.size() == 1 ? "" : "s") + ".");
+                "Updated " + relativePath + ": merged all required keys and applied " + overrides.size() + " override key" + (overrides.size() == 1 ? "" : "s") + ".");
     }
 
     private Map<String, String> activeProperties(String content) {
@@ -146,5 +155,30 @@ final class PropertiesMerger {
     }
 
     private record UpdateResult(String content, Map<String, String> missing) {
+    }
+
+    private void atomicReplace(Path target, String content) throws IOException {
+        Path parent = target.getParent();
+        if (parent == null) throw new IOException("Properties target has no parent: " + target);
+        Path temporary = Files.createTempFile(parent, target.getFileName().toString(), ".tmp");
+        Path backup = parent.resolve(target.getFileName().toString() + ".auto-ant-migration-backup");
+        try {
+            Files.writeString(temporary, content, StandardCharsets.UTF_8);
+            try {
+                Files.move(temporary, target, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+            } catch (IOException atomicFailure) {
+                Files.copy(target, backup, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.COPY_ATTRIBUTES);
+                try {
+                    Files.move(temporary, target, StandardCopyOption.REPLACE_EXISTING);
+                    Files.deleteIfExists(backup);
+                } catch (IOException replacementFailure) {
+                    try { Files.copy(backup, target, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.COPY_ATTRIBUTES); }
+                    catch (IOException restoreFailure) { replacementFailure.addSuppressed(restoreFailure); }
+                    throw replacementFailure;
+                }
+            }
+        } finally {
+            Files.deleteIfExists(temporary);
+        }
     }
 }

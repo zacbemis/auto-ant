@@ -16,6 +16,7 @@ public final class PropertiesWriter {
                 + "# auto-ant update may add new missing keys but should not overwrite existing values.\n"
                 + "# Commit this file if your team wants shared auto-ant project settings.\n"
                 + "\n"
+                + "auto.ant.schema.version=2\n"
                 + "app.name=" + appName + "\n"
                 + "context.path=" + ModelValues.contextPath(model) + "\n"
                 + "context.deploy.name=" + contextDeployName + "\n"
@@ -33,7 +34,9 @@ public final class PropertiesWriter {
                 + "dist.dir=dist\n"
                 + "war.name=" + contextDeployName + ".war\n"
                 + "\n"
-                + "reload.strategy=" + ModelValues.reloadStrategy(model) + "\n";
+                + "reload.strategy=" + ModelValues.reloadStrategy(model) + "\n"
+                + "reconcile.readiness.timeout.seconds=60\n"
+                + "reconcile.readiness.poll.millis=500\n";
     }
 
     public String writeLocal(ProjectModel model) {
@@ -55,7 +58,7 @@ public final class PropertiesWriter {
                 + "tomcat.home=" + tomcatHome + "\n"
                 + "catalina.base=" + tomcatHome + "\n"
                 + "jdk.home=" + jdkHome + "\n"
-                + "# Exploded webapp directory used by sync-web, compile-hot, and touch-webxml reload.\n"
+                + "# Exploded webapp directory promoted atomically by auto-ant reconcile.\n"
                 + "# Defaults to ${catalina.base}/webapps/${context.deploy.name} when not set here.\n"
                 + deployDirLine
                 + "# Tomcat context descriptor directory. The generated Ant deploy-exploded target writes\n"

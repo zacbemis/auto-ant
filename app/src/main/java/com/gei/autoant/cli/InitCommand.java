@@ -79,7 +79,10 @@ public final class InitCommand {
                 context.out().println("Rerun init with --tomcat/--java/--jdk or use --no-deploy to refresh files only.");
                 return 1;
             }
-            return runInitialDeploy(model, result.buildFile());
+            context.out().println();
+            context.out().println("Initial live deployment now uses auto-ant reconcile for locking and staged promotion.");
+            context.out().println("Stop Tomcat and run auto-ant reconcile --confirm-stopped, or configure Manager lifecycle.");
+            return 0;
         } catch (IllegalArgumentException ex) {
             context.err().println("init: " + ex.getMessage());
             return 2;
@@ -93,7 +96,7 @@ public final class InitCommand {
         context.out().println("Usage: auto-ant init [options]");
         context.out().println();
         context.out().println("Prompts to accept or override detected values, then generates auto-ant.build.xml, auto-ant properties,");
-        context.out().println("VS Code tasks/settings, safe .gitignore entries, and runs deploy-exploded.");
+        context.out().println("VS Code tasks/settings and safe .gitignore entries. Live deployment is performed by auto-ant reconcile.");
         context.out().println("The VS Code settings include File Watcher commands, Java library paths, and the selected JDK home.");
         context.out().println("Project build.xml files are never modified.");
         context.out().println();
@@ -111,7 +114,7 @@ public final class InitCommand {
         context.out().println("  --jdk <path>              JDK home directory used by generated VS Code settings.");
         context.out().println("  --reload-strategy <name>  manager, touch-webxml, or none.");
         context.out().println("  --tomcat-manager-url <url>");
-        context.out().println("  --no-deploy              Generate/refresh files without running deploy-exploded.");
+        context.out().println("  --no-deploy              Generate/refresh files without running safe reconciliation.");
     }
 
     private void printFileWatcherExtensionStatus() {
@@ -128,21 +131,9 @@ public final class InitCommand {
 
     private int runInitialDeploy(ProjectModel model, Path buildFile) {
         context.out().println();
-        context.out().println("Running initial deploy-exploded using " + model.projectRoot().relativize(buildFile).toString().replace('\\', '/') + "...");
-        try {
-            CommandResult result = antTargetRunner.runTarget(model.projectRoot(), buildFile, "deploy-exploded");
-            if (result.exitCode() != 0) {
-                context.err().println("init: deploy-exploded failed with exit code " + result.exitCode());
-            }
-            return result.exitCode();
-        } catch (IOException ex) {
-            context.err().println("init: failed to run deploy-exploded: " + ex.getMessage());
-            return 1;
-        } catch (InterruptedException ex) {
-            Thread.currentThread().interrupt();
-            context.err().println("init: deploy-exploded interrupted");
-            return 130;
-        }
+        context.out().println("Generated safe reconciliation files. Initial live deployment is not performed by init.");
+        context.out().println("Run auto-ant reconcile (or auto-ant reconcile --confirm-stopped) after reviewing configuration.");
+        return 0;
     }
 
     private void printBuildFileSummary(Path projectRoot, Path buildFile) {

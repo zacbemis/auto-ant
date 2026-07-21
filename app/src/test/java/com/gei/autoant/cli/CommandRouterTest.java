@@ -27,6 +27,7 @@ class CommandRouterTest {
 
         assertEquals(0, exitCode);
         assertTrue(harness.stdout().contains("auto-ant branch-refresh"));
+        assertTrue(harness.stdout().contains("auto-ant reconcile"));
         assertTrue(harness.stdout().contains("auto-ant doctor"));
         assertTrue(harness.stdout().contains("auto-ant init"));
         assertTrue(harness.stdout().contains("auto-ant update"));

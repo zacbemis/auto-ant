@@ -33,6 +33,12 @@ public final class RunCommand {
             return 2;
         }
 
+        List<String> liveMutating = List.of("deploy-exploded", "deploy-war", "branch-refresh", "sync-web", "sync-web-inf", "compile-hot");
+        if (commandLine.positionals().stream().anyMatch(liveMutating::contains)) {
+            context.err().println("run: direct live-mutating Ant targets are disabled. Use auto-ant reconcile.");
+            return 2;
+        }
+
         try {
             CommandResult result = new AntRunner(context.out(), context.err()).runTargets(context.projectRoot(), selectedBuildFile(), commandLine.positionals());
             return result.exitCode();
@@ -51,8 +57,7 @@ public final class RunCommand {
         context.out().println();
         context.out().println("Examples:");
         context.out().println("  auto-ant run clean-build");
-        context.out().println("  auto-ant run deploy-exploded");
-        context.out().println("  auto-ant run sync-web");
+        context.out().println("  auto-ant reconcile");
         printAvailableTargets();
     }
 

@@ -1,7 +1,6 @@
 package com.gei.autoant.generate;
 
 import com.gei.autoant.model.ProjectModel;
-import com.gei.autoant.util.AntCommand;
 import com.gei.autoant.util.JsonUtils;
 import com.gei.autoant.util.PathUtils;
 
@@ -34,9 +33,7 @@ public final class VsCodeSettingsWriter {
         String configPattern = ".*(WEB-INF[/\\\\]web\\.xml|context\\.xml|\\.(properties|xml|jar))$";
         String referencedLibraries = referencedLibraries(model);
         String jdkSettings = jdkSettings(model);
-        String reloadCommand = "auto-ant reload --root " + quoteShellPath(model.projectRoot());
-        String backendCommand = AntCommand.targetBuildFile(buildFile, "compile-hot")
-                + " && " + reloadCommand;
+        String reconcileCommand = "auto-ant reconcile --root " + quoteShellPath(model.projectRoot());
 
         return "// AUTO-ANT MANAGED SETTINGS - EDIT WITH CARE.\n"
                 + "// auto-ant update may refresh auto-ant-managed keys such as filewatcher commands,\n"
@@ -50,10 +47,10 @@ public final class VsCodeSettingsWriter {
                 + "  \"filewatcher.isSyncRunEvents\": true,\n"
                 + "  \"filewatcher.autoClearConsole\": false,\n"
                 + "  \"filewatcher.commands\": [\n"
-                + command(frontendPattern, AntCommand.targetBuildFile(buildFile, "sync-web")) + ",\n"
-                + command(webInfViewPattern, AntCommand.targetBuildFile(buildFile, "sync-web-inf")) + ",\n"
-                + command(javaPattern, backendCommand) + ",\n"
-                + command(configPattern, AntCommand.targetBuildFile(buildFile, "deploy-exploded") + " && " + reloadCommand) + "\n"
+                + command(frontendPattern, reconcileCommand) + ",\n"
+                + command(webInfViewPattern, reconcileCommand) + ",\n"
+                + command(javaPattern, reconcileCommand) + ",\n"
+                + command(configPattern, reconcileCommand) + "\n"
                 + "  ]\n"
                 + "}\n";
     }

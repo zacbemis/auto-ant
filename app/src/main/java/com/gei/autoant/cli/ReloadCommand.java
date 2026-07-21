@@ -68,7 +68,19 @@ public final class ReloadCommand {
                 properties.local("tomcat.manager.password").orElse("")
         );
         if (response.successful()) {
-            context.out().println("Reloaded Tomcat context " + properties.contextPath() + " using Tomcat Manager.");
+            try {
+                if (!managerClient.waitUntilRunning(properties.requiredLocal("tomcat.manager.url"), properties.contextPath(),
+                        properties.local("tomcat.manager.user").orElse(""), properties.local("tomcat.manager.password").orElse(""),
+                        properties.readinessTimeoutSeconds(), properties.readinessPollMillis())) {
+                    context.err().println("reload: Manager accepted reload, but the context did not become ready within 60 seconds.");
+                    return 1;
+                }
+            } catch (InterruptedException ex) {
+                Thread.currentThread().interrupt();
+                context.err().println("reload: interrupted while waiting for readiness.");
+                return 130;
+            }
+            context.out().println("Reloaded Tomcat context " + properties.contextPath() + " and confirmed Manager running state.");
             if (!response.body().isBlank()) {
                 context.out().println(response.body());
             }
@@ -86,12 +98,12 @@ public final class ReloadCommand {
         Path webXml = properties.deployedWebXml();
         if (!Files.exists(webXml)) {
             context.err().println("reload: deployed WEB-INF/web.xml not found: " + PathUtils.toPortableString(webXml));
-            context.err().println("Run ant deploy-exploded first or use reload.strategy=manager/none.");
+            context.err().println("Run auto-ant reconcile first (use --confirm-stopped when Manager lifecycle is unavailable), or configure reload.strategy=manager/none.");
             return 1;
         }
 
         Files.setLastModifiedTime(webXml, FileTime.from(Instant.now()));
-        context.out().println("Touched " + PathUtils.toPortableString(webXml) + " to trigger Tomcat reload.");
+        context.out().println("Touched " + PathUtils.toPortableString(webXml) + " to trigger Tomcat reload (compatibility path; readiness is not observable).");
         return 0;
     }
 
@@ -148,6 +160,24 @@ public final class ReloadCommand {
                         return catalinaBase.resolve("webapps").resolve(deployName).normalize();
                     });
             return deployDir.resolve("WEB-INF").resolve("web.xml").normalize();
+        }
+
+        private int readinessTimeoutSeconds() {
+            return positiveInt("reconcile.readiness.timeout.seconds", 60);
+        }
+
+        private int readinessPollMillis() {
+            return positiveInt("reconcile.readiness.poll.millis", 500);
+        }
+
+        private int positiveInt(String key, int defaultValue) {
+            String value = shared(key).orElse(Integer.toString(defaultValue));
+            try {
+                int parsed = Integer.parseInt(value);
+                return parsed > 0 ? parsed : defaultValue;
+            } catch (NumberFormatException ex) {
+                return defaultValue;
+            }
         }
 
         private String contextDeployName(String contextPath) {

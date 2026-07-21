@@ -29,8 +29,7 @@ class VsCodeSettingsWriterTest {
         assertTrue(settings.contains("\"filewatcher.commands\""));
         assertTrue(settings.contains("\"event\": \"onFileChange\""));
         assertTrue(settings.contains("\"isAsync\": false"));
-        assertTrue(settings.contains("\"cmd\": \"ant -logger org.apache.tools.ant.DefaultLogger -f"));
-        assertTrue(settings.contains("sync-web\""));
+        assertTrue(settings.contains("\"cmd\": \"auto-ant reconcile --root"));
         assertTrue(settings.contains("html|htm|css|js|ts"));
         assertTrue(settings.contains("(?!(WEB-INF|META-INF)"));
         assertTrue(settings.contains("web"));
@@ -45,7 +44,7 @@ class VsCodeSettingsWriterTest {
 
         assertTrue(settings.contains("WEB-INF"));
         assertTrue(settings.contains("tag|tagx|tld"));
-        assertTrue(settings.contains("sync-web-inf"));
+        assertTrue(settings.contains("auto-ant reconcile"));
     }
 
     @Test
@@ -55,9 +54,9 @@ class VsCodeSettingsWriterTest {
 
         String settings = new VsCodeSettingsWriter().write(model);
 
-        assertTrue(settings.contains("compile-hot && auto-ant reload --root"));
+        assertTrue(settings.contains("auto-ant reconcile --root"));
         assertTrue(settings.contains("\\\\.java$"));
-        assertTrue(settings.contains("deploy-exploded && auto-ant reload --root"));
+        assertTrue(settings.contains("auto-ant reconcile --root"));
         assertTrue(settings.contains("WEB-INF"));
         assertTrue(settings.contains("properties|xml|jar"));
     }

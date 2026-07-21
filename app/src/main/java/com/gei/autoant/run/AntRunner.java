@@ -11,6 +11,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 
 public final class AntRunner {
@@ -34,11 +35,19 @@ public final class AntRunner {
         return runTargets(projectRoot, buildFile, List.of(target));
     }
 
+    public CommandResult runTarget(Path projectRoot, Path buildFile, String target, Map<String, String> userProperties) throws IOException, InterruptedException {
+        return runTargets(projectRoot, buildFile, List.of(target), userProperties);
+    }
+
     public CommandResult runTargets(Path projectRoot, List<String> targets) throws IOException, InterruptedException {
         return runTargets(projectRoot, null, targets);
     }
 
     public CommandResult runTargets(Path projectRoot, Path buildFile, List<String> targets) throws IOException, InterruptedException {
+        return runTargets(projectRoot, buildFile, targets, Map.of());
+    }
+
+    public CommandResult runTargets(Path projectRoot, Path buildFile, List<String> targets, Map<String, String> userProperties) throws IOException, InterruptedException {
         if (targets.isEmpty()) {
             throw new IllegalArgumentException("At least one Ant target is required.");
         }
@@ -46,7 +55,7 @@ public final class AntRunner {
             validateTarget(target);
         }
 
-        List<String> command = buildCommand(buildFile, targets);
+        List<String> command = buildCommand(buildFile, targets, userProperties);
         out.println("Running: " + String.join(" ", command));
         return processRunner.run(projectRoot, command);
     }
@@ -56,13 +65,21 @@ public final class AntRunner {
     }
 
     List<String> buildCommand(Path buildFile, List<String> targets) {
+        return buildCommand(buildFile, targets, Map.of());
+    }
+
+    List<String> buildCommand(Path buildFile, List<String> targets, Map<String, String> userProperties) {
         String executable = new AntDetector().detect().value()
                 .map(Path::toString)
                 .orElse(AntDetector.executableName());
-        return buildCommand(executable, buildFile, targets);
+        return buildCommand(executable, buildFile, targets, userProperties);
     }
 
     List<String> buildCommand(String executable, Path buildFile, List<String> targets) {
+        return buildCommand(executable, buildFile, targets, Map.of());
+    }
+
+    List<String> buildCommand(String executable, Path buildFile, List<String> targets, Map<String, String> userProperties) {
         List<String> command = antLauncherCommand(executable).orElseGet(() -> antExecutableCommand(executable));
         command.add("-logger");
         command.add(AntCommand.DEFAULT_LOGGER_CLASS);
@@ -70,6 +87,10 @@ public final class AntRunner {
             command.add("-f");
             command.add(buildFile.toAbsolutePath().normalize().toString());
         }
+        userProperties.entrySet().stream().sorted(Map.Entry.comparingByKey()).forEach(entry -> {
+            validateProperty(entry.getKey(), entry.getValue());
+            command.add("-D" + entry.getKey() + "=" + entry.getValue());
+        });
         command.addAll(targets);
         return command;
     }
@@ -157,6 +178,13 @@ public final class AntRunner {
         }
         if (target.contains(" ") || target.contains("\t") || target.contains(";") || target.contains("&") || target.contains("|")) {
             throw new IllegalArgumentException("Unsafe Ant target name: " + target);
+        }
+    }
+
+    private void validateProperty(String key, String value) {
+        if (key == null || !key.matches("[A-Za-z0-9_.-]+") || value == null || value.indexOf('\0') >= 0
+                || value.contains("\r") || value.contains("\n")) {
+            throw new IllegalArgumentException("Unsafe Ant user property.");
         }
     }
 

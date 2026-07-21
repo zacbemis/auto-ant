@@ -10,6 +10,7 @@ import java.util.List;
 public final class GitignoreWriter {
     private static final List<String> ENTRIES = List.of(
             "auto-ant.local.properties",
+            ".auto-ant/",
             "build/",
             "dist/"
     );
