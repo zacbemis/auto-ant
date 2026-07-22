@@ -34,16 +34,28 @@ public final class VsCodeTasksWriter {
                 + "      \"problemMatcher\": \"$javac\"\n"
                 + "    },\n"
                 + "    {\n"
-                + "      \"label\": \"auto-ant: reconcile web changes\",\n"
+                + "      \"label\": \"auto-ant: develop frontend\",\n"
                 + "      \"type\": \"shell\",\n"
-                + "      \"command\": " + JsonUtils.quote(reconcile) + ",\n"
+                + "      \"command\": " + JsonUtils.quote(develop("frontend")) + ",\n"
                 + "      \"problemMatcher\": []\n"
                 + "    },\n"
                 + "    {\n"
-                + "      \"label\": \"auto-ant: reconcile Java changes\",\n"
+                + "      \"label\": \"auto-ant: develop views\",\n"
                 + "      \"type\": \"shell\",\n"
-                + "      \"command\": " + JsonUtils.quote(reconcile) + ",\n"
+                + "      \"command\": " + JsonUtils.quote(develop("views")) + ",\n"
+                + "      \"problemMatcher\": []\n"
+                + "    },\n"
+                + "    {\n"
+                + "      \"label\": \"auto-ant: develop classes\",\n"
+                + "      \"type\": \"shell\",\n"
+                + "      \"command\": " + JsonUtils.quote(develop("classes")) + ",\n"
                 + "      \"problemMatcher\": \"$javac\"\n"
+                + "    },\n"
+                + "    {\n"
+                + "      \"label\": \"auto-ant: develop config\",\n"
+                + "      \"type\": \"shell\",\n"
+                + "      \"command\": " + JsonUtils.quote(develop("config")) + ",\n"
+                + "      \"problemMatcher\": []\n"
                 + "    }\n"
                 + "  ]\n"
                 + "}\n";
@@ -51,5 +63,9 @@ public final class VsCodeTasksWriter {
 
     private String command(Path buildFile, String target) {
         return buildFile == null ? AntCommand.target(target) : AntCommand.targetBuildFile(buildFile, target);
+    }
+
+    private String develop(String kind) {
+        return "auto-ant develop --root \"${workspaceFolder}\" --kind " + kind;
     }
 }

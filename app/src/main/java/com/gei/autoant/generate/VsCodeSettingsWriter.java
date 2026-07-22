@@ -33,7 +33,7 @@ public final class VsCodeSettingsWriter {
         String configPattern = ".*(WEB-INF[/\\\\]web\\.xml|context\\.xml|\\.(properties|xml|jar))$";
         String referencedLibraries = referencedLibraries(model);
         String jdkSettings = jdkSettings(model);
-        String reconcileCommand = "auto-ant reconcile --root " + quoteShellPath(model.projectRoot());
+        String developCommand = "auto-ant develop --root " + quoteShellPath(model.projectRoot()) + " --kind ";
 
         return "// AUTO-ANT MANAGED SETTINGS - EDIT WITH CARE.\n"
                 + "// auto-ant update may refresh auto-ant-managed keys such as filewatcher commands,\n"
@@ -47,10 +47,10 @@ public final class VsCodeSettingsWriter {
                 + "  \"filewatcher.isSyncRunEvents\": true,\n"
                 + "  \"filewatcher.autoClearConsole\": false,\n"
                 + "  \"filewatcher.commands\": [\n"
-                + command(frontendPattern, reconcileCommand) + ",\n"
-                + command(webInfViewPattern, reconcileCommand) + ",\n"
-                + command(javaPattern, reconcileCommand) + ",\n"
-                + command(configPattern, reconcileCommand) + "\n"
+                + command(frontendPattern, developCommand + "frontend") + ",\n"
+                + command(webInfViewPattern, developCommand + "views") + ",\n"
+                + command(javaPattern, developCommand + "classes") + ",\n"
+                + command(configPattern, developCommand + "config") + "\n"
                 + "  ]\n"
                 + "}\n";
     }
@@ -129,7 +129,7 @@ public final class VsCodeSettingsWriter {
     private String command(String match, String command) {
         return "    {\n"
                 + "      \"match\": " + JsonUtils.quote(match) + ",\n"
-                + "      \"event\": \"onFileChange\",\n"
+                + "      \"event\": \"onFileChange,onFileCreate,onFileDelete\",\n"
                 + "      \"isAsync\": false,\n"
                 + "      \"cmd\": " + JsonUtils.quote(command) + "\n"
                 + "    }";
