@@ -8,8 +8,6 @@ import com.gei.autoant.model.ServletNamespace;
 import com.gei.autoant.model.SourceRoot;
 import com.gei.autoant.prompt.NonInteractiveOptions;
 import com.gei.autoant.util.PathUtils;
-import com.gei.autoant.deploy.DeploymentState;
-import com.gei.autoant.deploy.ReconcileConfiguration;
 
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -36,33 +34,11 @@ public final class DoctorCommand {
                 model = new ProjectDetector().detect(options.projectRoot(), options);
             }
             printDoctor(model);
-            printDeploymentStatus(model.projectRoot());
             return commandLine.hasOption("strict") && model.hasBlockingMissingValues() ? 1 : 0;
         } catch (IllegalArgumentException ex) {
             context.err().println("doctor: " + ex.getMessage());
             return 2;
         }
-    }
-
-    private void printDeploymentStatus(java.nio.file.Path projectRoot) {
-        context.out().println("Deployment reconciliation:");
-        try {
-            ReconcileConfiguration configuration = ReconcileConfiguration.load(projectRoot);
-            DeploymentState state = new DeploymentState(configuration);
-            if (state.isStale()) {
-                context.out().println("  STALE: " + state.staleReason());
-                context.out().println("  Recovery: if critical transaction paths are reported, keep Tomcat stopped and recover those artifacts first; otherwise run safe reconcile.");
-            } else if (state.isCurrent(state.fingerprint(configuration), configuration.deployDirectory())) {
-                context.out().println("  Current: resolved build inputs match and live snapshot integrity equals the last successful reconcile.");
-            } else {
-                context.out().println("  STALE/UNKNOWN: resolved build inputs or verified live snapshot integrity differs from the last success.");
-                context.out().println("  Recovery: run auto-ant reconcile using a safe server policy.");
-            }
-        } catch (Exception ex) {
-            context.out().println("  Not validated: " + ex.getMessage());
-            context.out().println("  Run auto-ant update, then auto-ant doctor again.");
-        }
-        context.out().println();
     }
 
     private void printDoctor(ProjectModel model) {

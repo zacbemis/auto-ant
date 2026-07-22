@@ -167,11 +167,5 @@ class ReloadCommandTest {
             this.password = password;
             return response;
         }
-
-        @Override
-        public boolean waitUntilRunning(String managerUrl, String contextPath, String user, String password,
-                                        int timeoutSeconds, int pollMillis) {
-            return true;
-        }
     }
 }

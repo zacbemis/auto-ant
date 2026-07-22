@@ -83,7 +83,7 @@ class UpdateGeneratorTest {
         assertTrue(tasksJson.contains("\"inputs\""));
         assertTrue(tasksJson.contains("customInput"));
         assertTrue(tasksJson.contains("\"label\": \"custom task\""));
-        assertTrue(tasksJson.contains("\"label\": \"auto-ant: reconcile web changes\""));
+        assertTrue(tasksJson.contains("\"label\": \"auto-ant: sync web\""));
         assertTrue(tasksJson.contains("auto-ant.build.xml"));
 
         String settingsJson = Files.readString(tempDir.resolve(".vscode/settings.json"));
@@ -117,8 +117,6 @@ class UpdateGeneratorTest {
         assertTrue(sharedProperties.contains("context.deploy.name=new"));
         assertTrue(sharedProperties.contains("context.descriptor.file.name=new.xml"));
         assertTrue(sharedProperties.contains("java.release=17"));
-        assertTrue(sharedProperties.contains("build.dir=build"));
-        assertTrue(sharedProperties.contains("auto.ant.schema.version=2"));
 
         String localProperties = Files.readString(tempDir.resolve("auto-ant.local.properties"));
         assertTrue(localProperties.contains("tomcat.home=" + portable(newTomcatHome)));
@@ -126,19 +124,6 @@ class UpdateGeneratorTest {
         assertTrue(localProperties.contains("deploy.dir=" + portable(newTomcatHome) + "/webapps/new"));
         assertTrue(localProperties.contains("context.descriptor.dir=" + portable(newTomcatHome) + "/conf/Catalina/localhost"));
         assertTrue(localProperties.contains("tomcat.manager.password=secret"));
-    }
-
-    @Test
-    void migratesSchemaOneWithBackupAndValidation() throws IOException {
-        createSimpleProject();
-        Path tomcat = tempDir.resolve("tomcat");
-        Files.writeString(tempDir.resolve("auto-ant.properties"), "auto.ant.schema.version=1\napp.name=Legacy\ncontext.path=/legacy\n");
-        Files.writeString(tempDir.resolve("auto-ant.local.properties"), "tomcat.home=" + portable(tomcat) + "\n");
-        var model = new ProjectDetector().detect(tempDir, NonInteractiveOptions.builder(tempDir).appName("Legacy").contextPath("/legacy").tomcatHome(tomcat).build());
-        new UpdateGenerator(tempDir).update(model);
-        assertTrue(Files.readString(tempDir.resolve("auto-ant.properties")).contains("auto.ant.schema.version=2"));
-        assertTrue(Files.list(tempDir).anyMatch(path -> path.getFileName().toString().startsWith("auto-ant.properties.auto-ant-backup-")));
-        assertTrue(Files.list(tempDir).noneMatch(path -> path.getFileName().toString().endsWith(".migration.tmp")));
     }
 
     private void createSimpleProject() throws IOException {

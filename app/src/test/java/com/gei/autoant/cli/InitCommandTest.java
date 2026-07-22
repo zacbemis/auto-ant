@@ -37,8 +37,9 @@ class InitCommandTest {
         assertTrue(harness.stdout().contains("VS Code File Watcher extension not detected"));
         assertTrue(harness.stdout().contains(VsCodeExtensionChecker.FILE_WATCHER_EXTENSION_ID));
         assertTrue(harness.stdout().contains("code --install-extension " + VsCodeExtensionChecker.FILE_WATCHER_EXTENSION_ID));
-        assertEquals(List.of(), harness.deployedTargets());
-        assertTrue(harness.stdout().contains("Initial live deployment now uses auto-ant reconcile"));
+        assertEquals(List.of("deploy-exploded"), harness.deployedTargets());
+        assertEquals(List.of(tempDir.toAbsolutePath().normalize()), harness.deployedRoots());
+        assertEquals(List.of(tempDir.resolve("auto-ant.build.xml").toAbsolutePath().normalize()), harness.deployedBuildFiles());
     }
 
     @Test
@@ -51,7 +52,7 @@ class InitCommandTest {
         assertEquals(0, exitCode);
         assertTrue(harness.stdout().contains("VS Code File Watcher extension detected"));
         assertFalse(harness.stdout().contains("code --install-extension"));
-        assertTrue(harness.stdout().contains("auto-ant reconcile"));
+        assertTrue(harness.stdout().contains("Running initial deploy-exploded"));
     }
 
     @Test
@@ -95,14 +96,15 @@ class InitCommandTest {
     }
 
     @Test
-    void initDoesNotInvokeUnsafeDirectDeploy() throws IOException {
+    void initReturnsDeployExplodedFailureCode() throws IOException {
         createSimpleProject();
         Harness harness = new Harness(tempDir, extensionId -> true, (label, detectedValue) -> Optional.empty(), 7);
 
         int exitCode = harness.command().run(initArgs());
 
-        assertEquals(0, exitCode);
-        assertEquals(List.of(), harness.deployedTargets());
+        assertEquals(7, exitCode);
+        assertEquals(List.of("deploy-exploded"), harness.deployedTargets());
+        assertTrue(harness.stderr().contains("deploy-exploded failed with exit code 7"));
     }
 
     @Test
@@ -116,10 +118,10 @@ class InitCommandTest {
         assertEquals(0, exitCode);
         assertEquals("<project name=\"NetBeans\"/>\n", Files.readString(tempDir.resolve("build.xml")));
         assertTrue(Files.exists(tempDir.resolve("auto-ant.build.xml")));
-        assertEquals(List.of(), harness.deployedBuildFiles());
+        assertEquals(List.of(tempDir.resolve("auto-ant.build.xml").toAbsolutePath().normalize()), harness.deployedBuildFiles());
         assertTrue(Files.readString(tempDir.resolve(".vscode/tasks.json")).contains("auto-ant.build.xml"));
-        assertTrue(Files.readString(tempDir.resolve(".vscode/settings.json")).contains("auto-ant reconcile"));
-        assertTrue(harness.stdout().contains("Initial live deployment now uses auto-ant reconcile"));
+        assertTrue(Files.readString(tempDir.resolve(".vscode/settings.json")).contains("auto-ant.build.xml"));
+        assertTrue(harness.stdout().contains("Running initial deploy-exploded using auto-ant.build.xml"));
     }
 
     private String[] initArgs() {
@@ -135,7 +137,7 @@ class InitCommandTest {
         assertEquals(0, exitCode);
         assertTrue(harness.stdout().contains("Prompts to accept or override"));
         assertTrue(harness.stdout().contains("VS Code tasks/settings"));
-        assertTrue(harness.stdout().contains("auto-ant reconcile"));
+        assertTrue(harness.stdout().contains("deploy-exploded"));
         assertTrue(harness.stdout().contains("--java <release>"));
         assertTrue(harness.stdout().contains("--jdk <path>"));
         assertTrue(harness.stdout().contains("--tomcat <path>"));

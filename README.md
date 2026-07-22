@@ -35,7 +35,7 @@
 
    To update an existing install later, pull the latest code and run `powershell -ExecutionPolicy Bypass -File .\install-auto-ant.ps1` again.
 
-2. Add Tomcat to Runtime Server Protocol UI. Keep it stopped for the first deployment unless Tomcat Manager lifecycle credentials are configured.
+2. Add Tomcat to Runtime Server Protocol UI and start the server.
 
 3. From your Ant web project, run `init`:
 
@@ -43,7 +43,7 @@
    auto-ant init --tomcat C:\path\to\tomcat --jdk C:\path\to\jdk
    ```
 
-   `init` detects the project layout, asks for the JDK home directory if `--jdk` is not provided, and generates or refreshes `auto-ant.build.xml`, `auto-ant.user.xml`, `auto-ant.properties`, `auto-ant.local.properties`, `.vscode/tasks.json`, and `.vscode/settings.json`. It does not mutate a live deployment directly. Run `auto-ant reconcile --confirm-stopped` while Tomcat is stopped, or configure Tomcat Manager lifecycle. Existing project `build.xml` files, including NetBeans builds, are left untouched.
+   `init` detects the project layout, asks for the JDK home directory if `--jdk` is not provided, generates or refreshes `auto-ant.build.xml`, `auto-ant.user.xml`, `auto-ant.properties`, `auto-ant.local.properties`, `.vscode/tasks.json`, and `.vscode/settings.json`, then runs `deploy-exploded` unless `--no-deploy` is provided. The generated VS Code settings set the selected JDK for Java tooling and integrated-terminal Ant commands. Existing project `build.xml` files, including NetBeans builds, are left untouched.
 
    `auto-ant.build.xml` and auto-ant VS Code tasks/settings are managed by auto-ant and include comments explaining what not to edit directly. Put custom Ant properties, paths, targets, or helper macros in `auto-ant.user.xml`; auto-ant creates that file if missing and leaves it untouched afterward.
 
@@ -53,25 +53,28 @@
    auto-ant update
    ```
 
-   `update` refreshes `auto-ant.build.xml` with a backup, preserves `auto-ant.user.xml`, merges every required property before applying explicit CLI overrides, refreshes `auto-ant:` VS Code tasks while preserving custom tasks, and preserves unrelated VS Code settings. Legacy/unversioned and schema-1 shared properties are backed up, upgraded to schema version `2`, and validated. Unknown future schema versions are refused. Projects generated before the reconcile architecture must run `auto-ant update` before deployment.
+   `update` refreshes `auto-ant.build.xml` with a backup, preserves `auto-ant.user.xml`, appends only missing keys to existing properties files, refreshes `auto-ant:` VS Code tasks while preserving custom tasks, and preserves unrelated VS Code settings.
 
 4. Useful commands:
 
    ```powershell
    auto-ant doctor
-   auto-ant reconcile --confirm-stopped
-   auto-ant reconcile --install-hook
+   auto-ant run deploy-exploded
+   auto-ant run sync-web
+   auto-ant run sync-web-inf
+   auto-ant run compile-hot
    auto-ant reload
    auto-ant vscode
    ```
 
-   - `auto-ant doctor` detects project settings and reports verified source freshness plus live snapshot integrity, stale/critical state, configuration/schema problems, and recovery guidance. It does not mutate the deployment.
-   - `auto-ant init` prompts for detected values, writes the generated auto-ant files, and checks the File Watcher extension. Safe deployment is a separate `reconcile` operation.
+   - `auto-ant doctor` detects the project root, app name, context path, source roots, web root, `WEB-INF`, libraries, servlet namespace, Tomcat, Ant, Java, JDK, reload strategy, and Tomcat Manager URL. It writes nothing. Add `--interactive` to override detected values or `--strict` to fail when required values are missing.
+   - `auto-ant init` prompts for detected values, writes the generated auto-ant files, checks the File Watcher extension, and runs `deploy-exploded` unless `--no-deploy` is used.
    - `auto-ant update` refreshes generated auto-ant build/config/VS Code files for the current CLI version. It preserves existing local/shared properties, custom tasks/settings, and does not deploy.
    - `auto-ant vscode` regenerates only `.vscode/tasks.json` and `.vscode/settings.json`, preserving unrelated settings. `refresh-vscode` is an alias.
-   - `auto-ant run <target>` runs non-live-mutating targets from `auto-ant.build.xml`. Unsafe legacy live targets are blocked and direct users to `reconcile`.
-   - `auto-ant reconcile` validates configuration, acquires an OS file lock, builds a complete snapshot, and promotes it with backup/rollback semantics. `branch-refresh` remains a compatibility alias.
-   - `auto-ant reload` reloads Tomcat using `reload.strategy`. Manager reload now polls Manager state with a bounded timeout. `touch-webxml` remains compatibility-only because it cannot prove readiness.
+   - `auto-ant run <target>` runs one or more targets from `auto-ant.build.xml`, not the project `build.xml`.
+   - `auto-ant reload` reloads Tomcat using `reload.strategy`: Tomcat Manager, touching deployed `WEB-INF/web.xml`, or printing a manual reload message.
+   - `auto-ant branch-refresh` runs the generated `branch-refresh` Ant target, then reloads Tomcat unless `--no-reload` is used.
+   - `auto-ant branch-refresh --install-hook` installs/updates `.git/hooks/post-checkout` so branch checkouts automatically run `auto-ant branch-refresh --from-hook`.
 
    Common generated Ant targets:
 
@@ -82,45 +85,34 @@
    - `copy-libs` copies project JARs into `WEB-INF/lib`.
    - `war` builds the WAR file.
    - `clean-build` cleans and builds the WAR.
-   - `reconcile-snapshot` builds and validates the complete exploded snapshot only at a unique CLI-controlled output supplied as highest-precedence Ant user properties. It does not invoke the general clean target.
-   - `deploy-war` refuses unsafe direct WAR deployment.
-   - `deploy-exploded`, `branch-refresh`, `sync-web`, `sync-web-inf`, and `compile-hot` are compatibility guards that refuse unsafe direct live mutation. Generated VS Code watchers/tasks use the coordinated CLI reconcile path.
+   - `deploy-exploded` cleans, builds, copies the exploded app to Tomcat `webapps`, and writes the Tomcat context descriptor.
+   - `deploy-war` copies the WAR to Tomcat `webapps`.
+   - `branch-refresh` runs `deploy-exploded` and `sync-web` after a branch checkout.
+   - `sync-web` copies frontend/web files to the deployed exploded app, excluding `WEB-INF` and `META-INF`.
+   - `sync-web-inf` copies JSP/view/static resources without replacing classes, libraries, `web.xml`, or `META-INF`.
+   - `compile-hot` recompiles Java and replaces deployed `WEB-INF/classes`.
    - `write-context-descriptor` writes the Tomcat context descriptor.
    - `reload-hint` prints reload instructions.
 
-## Reconciliation safety and Git coverage
+## Automatically recover after changing Git branches
 
-Install composed Git hooks without replacing existing custom hook content:
-
-```powershell
-auto-ant reconcile --install-hook
-```
-
-This adds managed blocks to `post-checkout`, `post-merge`, `post-rewrite`, and `post-commit`. Git resolves the effective hooks directory, so `core.hooksPath` and linked worktrees are honored. Existing content is preserved around the managed marker block, although line endings inside the managed block are normalized by Java. On POSIX-like filesystems installation fails if the hook cannot be made executable; Windows relies on Git's hook launcher semantics. `post-checkout` handles both branch and path checkout. `post-commit` catches ordinary commits and returns through the verified no-op. Duplicate triggers are serialized by the same deployment-target lock; contention/no-op does not itself create a stale marker.
+Changing branches can leave Tomcat's exploded deployment and compiled classes out of sync with the checked-out files. `auto-ant` can install a Git `post-checkout` hook that runs after branch checkouts:
 
 ```powershell
-auto-ant reconcile
+auto-ant branch-refresh --install-hook
 ```
 
-Git has no post-restore hook, so arbitrary `git restore` operations cannot be covered completely without a Git wrapper. Auto-ant intentionally does not provide or require a Git wrapper. Run `auto-ant reconcile` after such restores. Hook failures defer to the same `DeploymentState` stale/critical records used by normal reconciliation; no separate contradictory hook marker is created.
-
-The lock identity and lock-file namespace are derived only from the real canonical deployment parent and normalized target name, not the Catalina base, project root, or context path. The lock lives in the controlled `.auto-ant-locks` sibling directory under that canonical parent, never inside the live directory that is renamed. Thus different projects and Catalina bases targeting one external live directory contend on one OS lock. Windows target-name case is normalized where feasible; canonical parent resolution collapses aliases that Java exposes through `toRealPath`. Lock acquisition waits up to 30 seconds by default; use `--lock-wait-seconds 0` for fail-fast. Owner PID, start time, project, and context are written into the lock file for diagnostics. Operation is refused if the lock namespace itself is an exposed symbolic-link alias. Network filesystems that do not provide correct Java/NIO file-lock semantics are unsupported.
-
-Reconcile validates configured input roots before building, builds before touching live, stages on the deployment volume, journals each rename phase with same-directory atomic replacement where supported, renames live to backup, promotes the stage, and rolls back on promotion/lifecycle/readiness failure. Configured input roots, nested inputs, deployment artifacts, and transaction artifacts that Java exposes as links or special files are rejected rather than silently omitted. Legitimate non-linked external source/library roots remain fingerprinted. A successful full snapshot removes files deleted or renamed in source. The last-success manifest stores both the exact resolved-input fingerprint and a live tree digest. “Current” means both source freshness and verified live integrity, not source fingerprint alone. Junction/link guarantees are limited to what the host Java filesystem provider reports; if canonical containment or no-link status cannot be established, the operation is refused.
-
-When Manager lifecycle is configured (`reload.strategy=manager` plus Manager URL/credentials), reconcile accepts only an HTTP success carrying a valid Tomcat text Manager `OK - ...` body. It parses list output by exact context path into `RUNNING`, `STOPPED`, `MISSING`, or `UNKNOWN/ERROR`; missing, malformed, duplicate, HTTP-200 `FAIL`, and unknown states fail closed. A running context must return a successful stop and then be listed as stopped before promotion. Reconcile then performs promote → start → bounded exact-context readiness polling under the same lock. Otherwise it conservatively refuses mutation unless Tomcat has been stopped and `--confirm-stopped` is supplied. It never infers safety from VS Code watcher behavior.
-
-Every transaction move and journal persistence contributes a structured outcome. A failure after filesystem mutation is unsafe until postconditions and the previous live tree digest prove exact restoration. If restoration is incomplete or uncertain, auto-ant does not restart Tomcat: it writes critical state, leaves the context stopped, preserves live/stage/backup/journal paths, and prints exact manual-recovery paths. Journal recovery validates the exact canonical live target, transaction ID, controlled stage/backup names, canonical parent, digests, and no-link artifact types before any mutation; corrupt, stale, mismatched, or neighboring-application paths fail ambiguous with zero mutation. A verified restored filesystem may retain its journal when the final journal write/cleanup failed, so later recovery can finish safely. Rollback restart readiness failure is reported explicitly.
-
-Recovery after any stale/failure report:
+After that one-time setup, every branch checkout runs:
 
 ```powershell
-auto-ant doctor
-# stop Tomcat first when Manager lifecycle is unavailable
-auto-ant reconcile --confirm-stopped --force
+auto-ant branch-refresh
 ```
 
-For a critical transaction report, do not immediately force reconciliation: keep the target context stopped, inspect the printed live/stage/backup/journal paths, restore exactly one known-good live directory, retain evidence until verified, and then rerun `doctor` and `reconcile`.
+The generated `branch-refresh` Ant target performs a clean exploded redeploy and web sync, then `auto-ant branch-refresh` reloads the configured Tomcat context using your `reload.strategy`. To run the same recovery manually:
+
+```powershell
+auto-ant branch-refresh
+```
 
 ## Troubleshooting Ant on Windows
 

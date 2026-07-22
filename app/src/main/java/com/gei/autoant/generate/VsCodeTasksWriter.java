@@ -15,7 +15,6 @@ public final class VsCodeTasksWriter {
     }
 
     public String write(Path buildFile) {
-        String reconcile = "auto-ant reconcile --root \"${workspaceFolder}\"";
         return GENERATED_HEADER
                 + "{\n"
                 + "  \"version\": \"2.0.0\",\n"
@@ -28,21 +27,21 @@ public final class VsCodeTasksWriter {
                 + "      \"problemMatcher\": \"$javac\"\n"
                 + "    },\n"
                 + "    {\n"
-                + "      \"label\": \"auto-ant: reconcile deployment\",\n"
+                + "      \"label\": \"auto-ant: deploy exploded\",\n"
                 + "      \"type\": \"shell\",\n"
-                + "      \"command\": " + JsonUtils.quote(reconcile) + ",\n"
+                + "      \"command\": " + JsonUtils.quote(command(buildFile, "deploy-exploded")) + ",\n"
                 + "      \"problemMatcher\": \"$javac\"\n"
                 + "    },\n"
                 + "    {\n"
-                + "      \"label\": \"auto-ant: reconcile web changes\",\n"
+                + "      \"label\": \"auto-ant: sync web\",\n"
                 + "      \"type\": \"shell\",\n"
-                + "      \"command\": " + JsonUtils.quote(reconcile) + ",\n"
+                + "      \"command\": " + JsonUtils.quote(command(buildFile, "sync-web")) + ",\n"
                 + "      \"problemMatcher\": []\n"
                 + "    },\n"
                 + "    {\n"
-                + "      \"label\": \"auto-ant: reconcile Java changes\",\n"
+                + "      \"label\": \"auto-ant: compile hot\",\n"
                 + "      \"type\": \"shell\",\n"
-                + "      \"command\": " + JsonUtils.quote(reconcile) + ",\n"
+                + "      \"command\": " + JsonUtils.quote(command(buildFile, "compile-hot")) + ",\n"
                 + "      \"problemMatcher\": \"$javac\"\n"
                 + "    }\n"
                 + "  ]\n"

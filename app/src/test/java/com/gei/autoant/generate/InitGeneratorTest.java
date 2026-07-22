@@ -38,27 +38,33 @@ class InitGeneratorTest {
         assertTrue(buildXml.contains("<import file=\"auto-ant.user.xml\" optional=\"true\"/>"));
         assertTrue(buildXml.contains("target name=\"clean-build\""));
         assertTrue(buildXml.contains("target name=\"deploy-exploded\""));
-        assertTrue(buildXml.contains("depends=\"copy-web,compile,copy-libs\""));
-        assertTrue(buildXml.contains("reconcile.output.dir"));
+        assertTrue(buildXml.contains("depends=\"clean,copy-web,compile,copy-libs\""));
         assertTrue(buildXml.contains("target name=\"branch-refresh\""));
-        assertTrue(buildXml.contains("target name=\"reconcile-snapshot\""));
-        assertTrue(buildXml.contains("Direct live deployment is disabled"));
+        assertTrue(buildXml.contains("depends=\"deploy-exploded,sync-web\""));
         assertTrue(buildXml.contains("property name=\"deploy.dir\""));
         assertTrue(buildXml.contains("target name=\"write-context-descriptor\""));
         assertTrue(buildXml.contains("${catalina.base}/conf/Catalina/localhost"));
         assertTrue(buildXml.contains("&lt;Context reloadable=&quot;true&quot;/&gt;"));
         assertTrue(buildXml.contains("&lt;Context docBase=&quot;${context.descriptor.docBase}&quot; reloadable=&quot;true&quot;/&gt;"));
         assertTrue(buildXml.contains("<delete dir=\"${classes.dir}\"/>"));
+        assertTrue(buildXml.contains("<delete dir=\"${deploy.dir}/WEB-INF/classes\"/>"));
+        assertTrue(buildXml.contains("${deploy.dir}/WEB-INF/classes"));
         assertTrue(buildXml.contains("${tomcat.home}/lib"));
         assertTrue(buildXml.contains("${catalina.base}/lib"));
+        assertTrue(buildXml.contains("exclude name=\"WEB-INF/**\""));
         assertTrue(buildXml.contains("target name=\"sync-web-inf\""));
-        assertTrue(buildXml.contains("Direct live sync is disabled"));
+        assertTrue(buildXml.contains("Syncing JSP/view/static resources from ${web.dir} to ${deploy.dir}"));
+        assertTrue(buildXml.contains("include name=\"**/*.jsp\""));
+        assertTrue(buildXml.contains("exclude name=\"WEB-INF/classes/**\""));
+        assertTrue(buildXml.contains("exclude name=\"WEB-INF/lib/**\""));
+        assertTrue(buildXml.contains("exclude name=\"WEB-INF/web.xml\""));
+        assertTrue(buildXml.contains("${deploy.dir}/WEB-INF"));
+        assertTrue(buildXml.contains("Set deploy.dir to the running exploded app folder"));
         assertTrue(Files.readString(tempDir.resolve("auto-ant.properties")).contains("app.name=MyApp"));
         assertTrue(Files.readString(tempDir.resolve("auto-ant.properties")).contains("AUTO-ANT PROJECT CONFIGURATION"));
         assertTrue(Files.readString(tempDir.resolve("auto-ant.properties")).contains("context.deploy.name=MyApp"));
         assertTrue(Files.readString(tempDir.resolve("auto-ant.properties")).contains("context.descriptor.file.name=MyApp.xml"));
         assertTrue(Files.readString(tempDir.resolve("auto-ant.properties")).contains("java.release=25"));
-        assertTrue(Files.readString(tempDir.resolve("auto-ant.properties")).contains("auto.ant.schema.version=2"));
         assertTrue(Files.readString(tempDir.resolve("auto-ant.local.properties")).contains("deploy.dir="));
         assertTrue(Files.readString(tempDir.resolve("auto-ant.local.properties")).contains("AUTO-ANT LOCAL USER CONFIGURATION"));
         assertTrue(Files.readString(tempDir.resolve("auto-ant.local.properties")).contains("jdk.home="));
@@ -132,7 +138,10 @@ class InitGeneratorTest {
         assertTrue(settingsJson.contains("\"java.project.referencedLibraries\""));
         assertTrue(settingsJson.contains("\"filewatcher.commands\""));
         assertTrue(settingsJson.contains("\"event\": \"onFileChange\""));
-        assertTrue(settingsJson.contains("auto-ant reconcile --root"));
+        assertTrue(settingsJson.contains("-f "));
+        assertTrue(settingsJson.contains("sync-web\""));
+        assertTrue(settingsJson.contains("sync-web-inf\""));
+        assertTrue(settingsJson.contains("compile-hot && auto-ant reload"));
         assertTrue(settingsJson.contains("\\\\.java$"));
         assertTrue(settingsJson.contains("jsp|jspf|tag|tagx|tld"));
         assertTrue(settingsJson.contains("html|htm|css"));
@@ -173,7 +182,7 @@ class InitGeneratorTest {
         assertTrue(Files.exists(tempDir.resolve(".vscode/tasks.auto-ant-new.json")));
         assertTrue(Files.exists(tempDir.resolve(".vscode/settings.auto-ant-new.json")));
         assertTrue(Files.readString(tempDir.resolve(".vscode/tasks.auto-ant-new.json")).contains("auto-ant.build.xml"));
-        assertTrue(Files.readString(tempDir.resolve(".vscode/settings.auto-ant-new.json")).contains("auto-ant reconcile"));
+        assertTrue(Files.readString(tempDir.resolve(".vscode/settings.auto-ant-new.json")).contains("auto-ant.build.xml"));
     }
 
     @Test

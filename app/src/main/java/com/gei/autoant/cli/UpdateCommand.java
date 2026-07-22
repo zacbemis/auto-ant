@@ -46,7 +46,7 @@ public final class UpdateCommand {
             }
             context.out().println();
             context.out().println("Active auto-ant build file: " + model.projectRoot().relativize(result.buildFile()).toString().replace('\\', '/'));
-            context.out().println("No deploy was run. Use auto-ant reconcile (or auto-ant reconcile --confirm-stopped) to redeploy safely.");
+            context.out().println("No deploy was run. Use auto-ant run deploy-exploded if you want to redeploy.");
             return 0;
         } catch (IllegalArgumentException ex) {
             context.err().println("update: " + ex.getMessage());
