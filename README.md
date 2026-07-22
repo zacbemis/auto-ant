@@ -60,8 +60,6 @@
    ```powershell
    auto-ant doctor
    auto-ant reconcile --confirm-stopped
-   auto-ant develop --kind frontend
-   auto-ant develop --kind classes
    auto-ant reconcile --install-hook
    auto-ant reload
    auto-ant vscode
@@ -73,7 +71,6 @@
    - `auto-ant vscode` regenerates only `.vscode/tasks.json` and `.vscode/settings.json`, preserving unrelated settings. `refresh-vscode` is an alias.
    - `auto-ant run <target>` runs non-live-mutating targets from `auto-ant.build.xml`. Unsafe legacy live targets are blocked and direct users to `reconcile`.
    - `auto-ant reconcile` validates configuration, acquires an OS file lock, builds a complete snapshot, and promotes it with backup/rollback semantics. `branch-refresh` remains a compatibility alias.
-   - `auto-ant develop --kind frontend|views|classes|config` acquires the same deployment lock, validates/recover-checks configuration, builds a trusted complete snapshot into CLI-controlled output, and incrementally mirrors only the selected owned category into an existing safe live directory. It never stops Tomcat, renames/promotes the deployment, accepts `--confirm-stopped`, or records a successful full reconcile. Frontend/views changes do not reload; changed classes/config use the configured `touch-webxml`, Manager, or manual `none` reload behavior. Build/validation failures happen before mutation, and post-mutation failures mark deployment state stale.
    - `auto-ant reload` reloads Tomcat using `reload.strategy`. Manager reload now polls Manager state with a bounded timeout. `touch-webxml` remains compatibility-only because it cannot prove readiness.
 
    Common generated Ant targets:
@@ -87,7 +84,7 @@
    - `clean-build` cleans and builds the WAR.
    - `reconcile-snapshot` builds and validates the complete exploded snapshot only at a unique CLI-controlled output supplied as highest-precedence Ant user properties. It does not invoke the general clean target.
    - `deploy-war` refuses unsafe direct WAR deployment.
-   - `deploy-exploded`, `branch-refresh`, `sync-web`, `sync-web-inf`, and `compile-hot` are compatibility guards that refuse unsafe direct live mutation. Generated VS Code watchers synchronously run category-specific `develop` commands for change/create/delete events. Tasks retain an explicit full reconcile and provide all four category-specific develop commands; none emit `--confirm-stopped`.
+   - `deploy-exploded`, `branch-refresh`, `sync-web`, `sync-web-inf`, and `compile-hot` are compatibility guards that refuse unsafe direct live mutation. Generated VS Code watchers/tasks use the coordinated CLI reconcile path.
    - `write-context-descriptor` writes the Tomcat context descriptor.
    - `reload-hint` prints reload instructions.
 

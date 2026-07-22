@@ -131,23 +131,14 @@ class InitGeneratorTest {
         assertTrue(settingsJson.contains("AUTO-ANT MANAGED SETTINGS - EDIT WITH CARE"));
         assertTrue(settingsJson.contains("\"java.project.referencedLibraries\""));
         assertTrue(settingsJson.contains("\"filewatcher.commands\""));
-        assertTrue(settingsJson.contains("\"event\": \"onFileChange,onFileCreate,onFileDelete\""));
-        assertTrue(settingsJson.contains("auto-ant develop --root"));
-        assertTrue(settingsJson.contains("--kind frontend"));
-        assertTrue(settingsJson.contains("--kind views"));
-        assertTrue(settingsJson.contains("--kind classes"));
-        assertTrue(settingsJson.contains("--kind config"));
-        assertFalse(settingsJson.contains("--confirm-stopped"));
+        assertTrue(settingsJson.contains("\"event\": \"onFileChange\""));
+        assertTrue(settingsJson.contains("auto-ant reconcile --root"));
         assertTrue(settingsJson.contains("\\\\.java$"));
         assertTrue(settingsJson.contains("jsp|jspf|tag|tagx|tld"));
         assertTrue(settingsJson.contains("html|htm|css"));
         String tasksJson = Files.readString(tempDir.resolve(".vscode/tasks.json"));
         assertTrue(tasksJson.contains("AUTO-ANT MANAGED TASKS - DO NOT EDIT AUTO-ANT TASKS DIRECTLY"));
         assertTrue(tasksJson.contains("Add custom tasks with labels that do not start with \"auto-ant:\""));
-        assertTrue(tasksJson.contains("auto-ant: reconcile deployment"));
-        assertTrue(tasksJson.contains("auto-ant: develop frontend"));
-        assertTrue(tasksJson.contains("auto-ant: develop config"));
-        assertFalse(tasksJson.contains("--confirm-stopped"));
     }
 
     @Test
@@ -182,7 +173,7 @@ class InitGeneratorTest {
         assertTrue(Files.exists(tempDir.resolve(".vscode/tasks.auto-ant-new.json")));
         assertTrue(Files.exists(tempDir.resolve(".vscode/settings.auto-ant-new.json")));
         assertTrue(Files.readString(tempDir.resolve(".vscode/tasks.auto-ant-new.json")).contains("auto-ant.build.xml"));
-        assertTrue(Files.readString(tempDir.resolve(".vscode/settings.auto-ant-new.json")).contains("auto-ant develop"));
+        assertTrue(Files.readString(tempDir.resolve(".vscode/settings.auto-ant-new.json")).contains("auto-ant reconcile"));
     }
 
     @Test

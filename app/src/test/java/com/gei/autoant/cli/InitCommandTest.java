@@ -118,7 +118,7 @@ class InitCommandTest {
         assertTrue(Files.exists(tempDir.resolve("auto-ant.build.xml")));
         assertEquals(List.of(), harness.deployedBuildFiles());
         assertTrue(Files.readString(tempDir.resolve(".vscode/tasks.json")).contains("auto-ant.build.xml"));
-        assertTrue(Files.readString(tempDir.resolve(".vscode/settings.json")).contains("auto-ant develop"));
+        assertTrue(Files.readString(tempDir.resolve(".vscode/settings.json")).contains("auto-ant reconcile"));
         assertTrue(harness.stdout().contains("Initial live deployment now uses auto-ant reconcile"));
     }
 

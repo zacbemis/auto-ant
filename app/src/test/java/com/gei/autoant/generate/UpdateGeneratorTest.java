@@ -83,8 +83,7 @@ class UpdateGeneratorTest {
         assertTrue(tasksJson.contains("\"inputs\""));
         assertTrue(tasksJson.contains("customInput"));
         assertTrue(tasksJson.contains("\"label\": \"custom task\""));
-        assertTrue(tasksJson.contains("\"label\": \"auto-ant: develop frontend\""));
-        assertTrue(tasksJson.contains("\"label\": \"auto-ant: reconcile deployment\""));
+        assertTrue(tasksJson.contains("\"label\": \"auto-ant: reconcile web changes\""));
         assertTrue(tasksJson.contains("auto-ant.build.xml"));
 
         String settingsJson = Files.readString(tempDir.resolve(".vscode/settings.json"));

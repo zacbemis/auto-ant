@@ -26,7 +26,6 @@ public final class CommandRouter {
         return switch (command) {
             case "branch-refresh" -> new BranchRefreshCommand(context).run(commandArgs);
             case "reconcile" -> new ReconcileCommand(context).run(commandArgs);
-            case "develop" -> new DevelopCommand(context).run(commandArgs);
             case "doctor" -> new DoctorCommand(context).run(commandArgs);
             case "init" -> new InitCommand(context).run(commandArgs);
             case "update" -> new UpdateCommand(context).run(commandArgs);
@@ -59,7 +58,6 @@ public final class CommandRouter {
         context.out().println();
         context.out().println("Usage:");
         context.out().println("  auto-ant reconcile [options]");
-        context.out().println("  auto-ant develop --kind <frontend|views|classes|config> [options]");
         context.out().println("  auto-ant branch-refresh [options]");
         context.out().println("  auto-ant doctor [options]");
         context.out().println("  auto-ant init [options]");
